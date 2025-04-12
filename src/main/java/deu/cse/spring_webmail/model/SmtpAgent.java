@@ -29,13 +29,27 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class SmtpAgent {
 
-    @Getter @Setter  protected String host = null;
-    @Getter @Setter  protected String userid = null;
-    @Getter @Setter protected String to = null;
-    @Getter @Setter protected String cc = null;
-    @Getter @Setter protected String subj = null;
-    @Getter @Setter protected String body = null;
-    @Getter @Setter protected String file1 = null;
+    @Getter
+    @Setter
+    protected String host = null;
+    @Getter
+    @Setter
+    protected String userid = null;
+    @Getter
+    @Setter
+    protected String to = null;
+    @Getter
+    @Setter
+    protected String cc = null;
+    @Getter
+    @Setter
+    protected String subj = null;
+    @Getter
+    @Setter
+    protected String body = null;
+    @Getter
+    @Setter
+    protected String file1 = null;
 
     public SmtpAgent(String host, String userid) {
         this.host = host;
@@ -64,7 +78,6 @@ public class SmtpAgent {
             // msg.setFrom(new InternetAddress(this.userid + "@" + this.host));
             msg.setFrom(new InternetAddress(this.userid));  // 200102 LJM - 테스트 목적으로 수정
             //msg.setFrom(new InternetAddress("jongmin@deu.ac.kr"));
-
 
             // setRecipient() can be called repeatedly if ';' or ',' exists
             if (this.to.indexOf(';') != -1) {
@@ -127,8 +140,7 @@ public class SmtpAgent {
             status = true;
         } catch (Exception ex) {
             log.error("sendMessage() error: {}", ex);
-        } finally {
-            return status;
         }
+        return status;
     }  // sendMessage()
 }

@@ -27,17 +27,40 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @RequiredArgsConstructor
 public class MessageParser {
-    @NonNull @Getter @Setter private Message message;
-    @NonNull @Getter @Setter private String userid;
-    @Getter @Setter private String toAddress;
-    @Getter @Setter private String fromAddress;
-    @Getter @Setter private String ccAddress;
-    @Getter @Setter private String sentDate;
-    @Getter @Setter private String subject;
-    @Getter @Setter private String body;
-    @Getter @Setter private String fileName;
-    @Getter @Setter private String downloadTempDir = "C:/temp/download/";
-    
+
+    @NonNull
+    @Getter
+    @Setter
+    private Message message;
+    @NonNull
+    @Getter
+    @Setter
+    private String userid;
+    @Getter
+    @Setter
+    private String toAddress;
+    @Getter
+    @Setter
+    private String fromAddress;
+    @Getter
+    @Setter
+    private String ccAddress;
+    @Getter
+    @Setter
+    private String sentDate;
+    @Getter
+    @Setter
+    private String subject;
+    @Getter
+    @Setter
+    private String body;
+    @Getter
+    @Setter
+    private String fileName;
+    @Getter
+    @Setter
+    private String downloadTempDir = "C:/temp/download/";
+
     public MessageParser(Message message, String userid, HttpServletRequest request) {
         this(message, userid);
         PropertyReader props = new PropertyReader();
@@ -64,9 +87,8 @@ public class MessageParser {
         } catch (Exception ex) {
             log.error("MessageParser.parse() - Exception : {}", ex.getMessage());
             status = false;
-        } finally {
-            return status;
         }
+        return status;
     }
 
     private void getEnvelope(Message m) throws Exception {
