@@ -52,12 +52,20 @@ public class UserAdminAgent {
         log.debug("Connecting to JMX URL: {}", jmxUrl);
         JMXServiceURL serviceUrl = new JMXServiceURL(jmxUrl);
 
+        // JMX 관리자 id와 pw 맵핑
         Map<String, Object> env = new HashMap<>();
         env.put(JMXConnector.CREDENTIALS, new String[]{ROOT_ID, ROOT_PASSWORD});
         log.debug("Using credentials: user={}", ROOT_ID);
 
+        // url과 관리자 정보로 JMX 연결
         JMXConnector connector = JMXConnectorFactory.connect(serviceUrl, env);
         return connector.getMBeanServerConnection();
+    }
+
+    // MBean 객체 생성
+    private ObjectName getMBeanObject() throws Exception {
+        ObjectName mbeanName = new ObjectName("org.apache.james:type=component,name=usersrepository");
+        return mbeanName;
     }
 
     public boolean addUser(String userId, String password) {
@@ -66,28 +74,20 @@ public class UserAdminAgent {
         log.debug("addUser() called with userId: {}, password: {}", userId, password);
 
         try {
-            try (JMXConnector connector = JMXConnectorFactory.connect(
-                    new JMXServiceURL("service:jmx:rmi:///jndi/rmi://" + server + ":" + port + "/jmxrmi"),
-                    new HashMap<String, Object>() {
-                {
-                    put(JMXConnector.CREDENTIALS, new String[]{ROOT_ID, ROOT_PASSWORD});
-                }
-            })) {
-                MBeanServerConnection connection = connector.getMBeanServerConnection();
+            MBeanServerConnection connection = getJMXConnection();
+            ObjectName mbeanName = getMBeanObject();
+            connection.invoke(mbeanName, "addUser",
+                    new Object[]{userId, password},
+                    new String[]{String.class.getName(), String.class.getName()});
 
-                ObjectName mbeanName = new ObjectName("org.apache.james:type=component,name=usersrepository");
-                connection.invoke(mbeanName, "addUser",
-                        new Object[]{userId, password},
-                        new String[]{String.class.getName(), String.class.getName()});
+            status = true;
+            log.debug("User {} added successfully", userId);
 
-                status = true;
-                log.debug("User {} added successfully", userId);
-            }
         } catch (Exception ex) {
             log.error("addUser 예외: {}", ex.getMessage(), ex);
             status = false;
         }
-
+      
         return status;
     }
 
@@ -103,7 +103,7 @@ public class UserAdminAgent {
 
         try {
             MBeanServerConnection connection = getJMXConnection();
-            ObjectName mbeanName = new ObjectName("org.apache.james:type=component,name=usersrepository");
+            ObjectName mbeanName = getMBeanObject();
 
             // listUsers 메서드 호출 (String[] 반환)
             String[] users = (String[]) connection.invoke(mbeanName, "listAllUsers",
@@ -135,7 +135,7 @@ public class UserAdminAgent {
 
         try {
             MBeanServerConnection connection = getJMXConnection();
-            ObjectName mbeanName = new ObjectName("org.apache.james:type=component,name=usersrepository");
+            ObjectName mbeanName = getMBeanObject();
 
             for (String userId : userList) {
                 try {
@@ -163,7 +163,7 @@ public class UserAdminAgent {
 
         try {
             MBeanServerConnection connection = getJMXConnection();
-            ObjectName mbeanName = new ObjectName("org.apache.james:type=component,name=usersrepository");
+            ObjectName mbeanName = getMBeanObject();
 
             // containsUser 메서드 호출
             Boolean exists = (Boolean) connection.invoke(mbeanName, "verifyExists",
@@ -185,7 +185,7 @@ public class UserAdminAgent {
         try {
             // JMX 연결 테스트
             MBeanServerConnection connection = getJMXConnection();
-            connection.getMBeanCount(); // 간단한 호출로 연결 확인
+            connection.getMBeanCount();
             log.debug("JMX connection established");
             return true;
         } catch (Exception ex) {
