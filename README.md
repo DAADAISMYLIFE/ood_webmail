@@ -20,7 +20,9 @@
     ```bash
     git clone https://github.com/DAADAISMYLIFE/ood_webmail.git
     ```
-2.  **NetBeans로 빌드 및 실행:** NetBeans에서 프로젝트 디렉토리를 불러온 후 실행한다.
+2.  **NetBeans로 프로젝트 열기:** NetBeans 실행 후 `File ->Open Project`로 해당 프로젝트 열기
+
+3.  **실행:** 프로젝트 오른쪽 클릭 후 `Run Maven -> Other Goals...` 클릭 후 `spring-boot:run`으로 실행
 
 ## 팀원
 
