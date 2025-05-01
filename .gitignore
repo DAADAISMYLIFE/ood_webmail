@@ -28,6 +28,11 @@ src/main/webapp/WEB-INF/download/
 build/
 !**/src/main/**/build/
 !**/src/test/**/build/
+nbactions.xml
+nb-configuration.xml
+
+### Excel
+*.xlsx
 
 ### VS Code ###
 .vscode/
