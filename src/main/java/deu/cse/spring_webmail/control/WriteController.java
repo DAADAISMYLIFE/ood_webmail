@@ -55,6 +55,13 @@ public class WriteController {
             RedirectAttributes attrs) {
         log.debug("write_mail.do: to = {}, cc = {}, subj = {}, body = {}, file1 = {}",
                 to, cc, subj, body, upFile.getOriginalFilename());
+        
+        //메일 제목이 공란인 경우
+        //제목 없음으로 제목 대체후 하이퍼 링크 생성해 내용확인가능
+        if (subj == null || subj.trim().isEmpty()) {
+            subj = "제목 없음";
+        }
+        
         // FormParser 클래스의 기능은 매개변수로 모두 넘어오므로 더이상 필요 없음.
         // 업로드한 파일이 있으면 해당 파일을 UPLOAD_FOLDER에 저장해 주면 됨.
         if (!"".equals(upFile.getOriginalFilename())) {
