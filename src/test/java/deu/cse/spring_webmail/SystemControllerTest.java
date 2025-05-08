@@ -6,6 +6,7 @@ package deu.cse.spring_webmail;
 
 import deu.cse.spring_webmail.control.SystemController;
 import deu.cse.spring_webmail.model.AgentFactory;
+import deu.cse.spring_webmail.model.ImageManager;
 import deu.cse.spring_webmail.model.Pop3Agent;
 import deu.cse.spring_webmail.model.UserAdminAgent;
 import java.util.List;
@@ -26,6 +27,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.flash;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -47,6 +49,9 @@ public class SystemControllerTest {
     @MockBean
     private AgentFactory agentFactory;
 
+    @MockBean
+    private ImageManager imageManager;
+
     private static final int COMMAND_LOGIN = 91;
     private static final int COMMAND_LOGOUT = 92;
 
@@ -67,14 +72,17 @@ public class SystemControllerTest {
 
         Pop3Agent mockPop3Agent = Mockito.mock(Pop3Agent.class);
 
+        // agentFactory 클래스의 pop3AgentCreate 메서드가 실행될 경우 mockPop3Agent를 리턴함
         BDDMockito.given(agentFactory.pop3AgentCreate(
                 anyString(),
                 eq(testUserid),
                 eq(testPassword))
         ).willReturn(mockPop3Agent);
 
+        // mockPop3Agent가 validate를 하면 true를 리턴함
         BDDMockito.given(mockPop3Agent.validate()).willReturn(true);
 
+        // login.do로 post 메서드를 테스트
         mockMvc.perform(MockMvcRequestBuilders.post("/login.do")
                 .param("menu", String.valueOf(COMMAND_LOGIN))
                 .param("userid", testUserid)
@@ -216,12 +224,9 @@ public class SystemControllerTest {
 
         UserAdminAgent mockAdminAgent = Mockito.mock(UserAdminAgent.class);
 
-        // 2. agentFactory.userAdminAgentCreate() 메소드가 호출될 때,
-        //    어떤 인자들(any() 또는 정확한 값 eq() 사용)로 호출되든 mockUserAdminAgent를 반환하도록 설정합니다.
         BDDMockito.given(agentFactory.userAdminAgentCreate(
                 anyString(), anyInt(), anyString(),
                 anyString(), anyString(), anyString()
-        // 또는 정확한 @Value 값과 ServletContext 결과값을 eq()로 매칭해도 됩니다.
         )).willReturn(mockAdminAgent);
 
         BDDMockito.given(mockAdminAgent.addUser(eq(testUserid), eq(testPassword)))
@@ -258,4 +263,62 @@ public class SystemControllerTest {
                 .andExpect(flash().attributeExists("msg"))
                 .andExpect(flash().attribute("msg", String.format("사용자(%s) 추가를 실패하였습니다.", testUserid)));
     }
+
+    // 유저 삭제
+    // 페이지
+    @Test
+    void deleteUserTest() throws Exception {
+
+        UserAdminAgent mockUserAdminAgent = Mockito.mock(UserAdminAgent.class);
+
+        BDDMockito.given(agentFactory.userAdminAgentCreate(
+                anyString(), anyInt(), anyString(),
+                anyString(), anyString(), anyString()
+        )).willReturn(mockUserAdminAgent);
+
+        List<String> dummyUserList = java.util.Arrays.asList("user1@test.com", "user2@test.com", "admin@webmail.com");
+        BDDMockito.given(mockUserAdminAgent.getUserList()).willReturn(dummyUserList);
+
+        mockMvc.perform(MockMvcRequestBuilders.get("/delete_user"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("admin/delete_user"))
+                .andExpect(model().attributeExists("userList"))
+                .andExpect(model().attribute("userList", dummyUserList.stream().sorted().collect(java.util.stream.Collectors.toList())));
+    }
+
+    // 유저 삭제 do
+    @Test
+    void deleteUserDoTest() throws Exception {
+        String[] testUserids = {"deleteuser@webmail.com"};
+
+        UserAdminAgent mockAdminAgent = Mockito.mock(UserAdminAgent.class);
+        BDDMockito.given(agentFactory.userAdminAgentCreate(
+                anyString(), anyInt(), anyString(),
+                anyString(), anyString(), anyString()
+        )).willReturn(mockAdminAgent);
+
+        BDDMockito.given(mockAdminAgent.deleteUsers(testUserids))
+                .willReturn(true);
+        mockMvc.perform(MockMvcRequestBuilders.post("/delete_user.do")
+                .param("selectedUsers", testUserids)
+        )
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/admin_menu"));
+    }
+
+    // 이미지 업로드
+    @Test
+    void getImageSuccessTest() throws Exception {
+        String fakeImageName = "test.jpg";
+
+        // 가짜 이미지 바이트 데이터
+        byte[] fakeImageBytes = "test-image-byte".getBytes();
+
+        BDDMockito.given(imageManager.getImageBytes(anyString(), eq(fakeImageName))).willReturn(fakeImageBytes);
+
+        mockMvc.perform(MockMvcRequestBuilders.get("/get_image/" + fakeImageName))
+                .andExpect(status().isOk())
+                .andExpect(content().bytes(fakeImageBytes));
+    }
+
 }
