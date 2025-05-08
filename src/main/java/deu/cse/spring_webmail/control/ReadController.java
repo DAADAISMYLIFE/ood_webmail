@@ -4,7 +4,9 @@
  */
 package deu.cse.spring_webmail.control;
 
+import deu.cse.spring_webmail.model.MessageFormatter;
 import deu.cse.spring_webmail.model.Pop3Agent;
+import jakarta.mail.Message;
 import jakarta.mail.internet.MimeUtility;
 import java.io.File;
 import java.io.IOException;
@@ -50,24 +52,55 @@ public class ReadController {
     @Value("${file.download_folder}")
     private String DOWNLOAD_FOLDER;
 
+//    @GetMapping("/show_message")
+//    public String showMessage(@RequestParam Integer msgid, Model model) {
+//        log.debug("download_folder = {}", DOWNLOAD_FOLDER);
+//        
+//        Pop3Agent pop3 = new Pop3Agent();
+//        pop3.setHost((String) session.getAttribute("host"));
+//        pop3.setUserid((String) session.getAttribute("userid"));
+//        pop3.setPassword((String) session.getAttribute("password"));
+//        pop3.setRequest(request);
+//        
+//        String msg = pop3.getMessage(msgid);
+//        session.setAttribute("sender", pop3.getSender());  // 220612 LJM - added
+//        session.setAttribute("subject", pop3.getSubject());
+//        session.setAttribute("body", pop3.getBody());
+//        model.addAttribute("msg", msg);
+//        return "/read_mail/show_message";
+//    }
+    // 기존 메서드 주석 처리함. 메일 테이블 생성 시
+    // message-id 포함 링크로 변경하였음
     @GetMapping("/show_message")
-    public String showMessage(@RequestParam Integer msgid, Model model) {
-        log.debug("download_folder = {}", DOWNLOAD_FOLDER);
-        
-        Pop3Agent pop3 = new Pop3Agent();
-        pop3.setHost((String) session.getAttribute("host"));
-        pop3.setUserid((String) session.getAttribute("userid"));
-        pop3.setPassword((String) session.getAttribute("password"));
-        pop3.setRequest(request);
-        
-        String msg = pop3.getMessage(msgid);
-        session.setAttribute("sender", pop3.getSender());  // 220612 LJM - added
-        session.setAttribute("subject", pop3.getSubject());
-        session.setAttribute("body", pop3.getBody());
-        model.addAttribute("msg", msg);
+    public String showMessageById(@RequestParam String id, Model model) {
+        String host = (String) session.getAttribute("host");
+        String userid = (String) session.getAttribute("userid");
+        String password = (String) session.getAttribute("password");
+
+        Pop3Agent agent = new Pop3Agent(host, userid, password);
+        Message[] messages = agent.getMessages();
+
+        for (Message msg : messages) {
+            try {
+                String[] headers = msg.getHeader("Message-ID");
+                if (headers != null && headers.length > 0 && headers[0].equals(id)) {
+                    MessageFormatter formatter = new MessageFormatter(userid);
+                    formatter.setRequest(request);
+                    String content = formatter.getMessage(msg);
+                    session.setAttribute("sender", formatter.getSender());
+                    session.setAttribute("subject", formatter.getSubject());
+                    session.setAttribute("body", formatter.getBody());
+                    model.addAttribute("msg", content);
+                    return "/read_mail/show_message";
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        model.addAttribute("msg", "해당 메일을 찾을 수 없습니다.");
         return "/read_mail/show_message";
     }
-    
+
     @GetMapping("/download")
     public ResponseEntity<Resource> download(@RequestParam("userid") String userId,
             @RequestParam("filename") String fileName) {
@@ -77,7 +110,7 @@ public class ReadController {
         } catch (UnsupportedEncodingException ex) {
             log.error("error");
         }
-        
+
         // 1. 내려받기할 파일의 기본 경로 설정
         String basePath = ctx.getRealPath(DOWNLOAD_FOLDER) + File.separator + userId;
 
@@ -110,23 +143,50 @@ public class ReadController {
 
         return new ResponseEntity<>(resource, headers, HttpStatus.OK);
     }
-    
+
+    // 기존의 삭제 방식(msgid 대신 message id 기반으로 삭제)
     @GetMapping("/delete_mail.do")
-    public String deleteMailDo(@RequestParam("msgid") Integer msgId, RedirectAttributes attrs) {
-        log.debug("delete_mail.do: msgid = {}", msgId);
-        
+    public String deleteMailDo(@RequestParam("messageId") String messageId, RedirectAttributes attrs) {
+        log.debug("delete_mail.do: messageId = {}", messageId);
+
         String host = (String) session.getAttribute("host");
         String userid = (String) session.getAttribute("userid");
         String password = (String) session.getAttribute("password");
 
-        Pop3Agent pop3 = new Pop3Agent(host, userid, password);
-        boolean deleteSuccessful = pop3.deleteMessage(msgId, true);
-        if (deleteSuccessful) {
+        // Pop3Agent pop3 = new Pop3Agent(host, userid, password);
+        // boolean deleteSuccessful = pop3.deleteMessage(msgId, true);
+        // if (deleteSuccessful) {
+//            attrs.addFlashAttribute("msg", "메시지 삭제를 성공하였습니다.");
+//        } else {
+//            attrs.addFlashAttribute("msg", "메시지 삭제를 실패하였습니다.");
+//        }
+        Pop3Agent agent = new Pop3Agent(host, userid, password);
+        Message[] messages = agent.getMessages();
+
+        boolean found = false;
+        String extractedId = messageId.replaceAll("[<>]", "");
+        
+        for (int i = 0; i < messages.length; i++) {
+            try {
+                String[] headers = messages[i].getHeader("Message-ID");
+                if (headers != null && headers.length > 0) {
+                    String actualId = headers[0].replaceAll("[<>]", "");  // 꺾쇠 제거
+                    if (actualId.equals(extractedId)) {
+                        found = agent.deleteMessage(i + 1, true);  // POP3는 1부터 시작
+                        break;
+                    }
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+
+        if (found) {
             attrs.addFlashAttribute("msg", "메시지 삭제를 성공하였습니다.");
         } else {
-            attrs.addFlashAttribute("msg", "메시지 삭제를 실패하였습니다.");
+            attrs.addFlashAttribute("msg", "해당 메시지를 찾을 수 없습니다.");
         }
-        
+
         return "redirect:main_menu";
     }
 }

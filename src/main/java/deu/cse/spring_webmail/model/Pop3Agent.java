@@ -12,6 +12,8 @@ import jakarta.mail.Session;
 import jakarta.mail.Store;
 import java.util.Properties;
 import jakarta.servlet.http.HttpServletRequest;
+import java.util.ArrayList;
+import java.util.List;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -24,24 +26,40 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @NoArgsConstructor        // 기본 생성자 생성
 public class Pop3Agent {
-    @Getter @Setter private String host;
-    @Getter @Setter private String userid;
-    @Getter @Setter private String password;
-    @Getter @Setter private Store store;
-    @Getter @Setter private String excveptionType;
-    @Getter @Setter private HttpServletRequest request;
-    
+
+    @Getter
+    @Setter
+    private String host;
+    @Getter
+    @Setter
+    private String userid;
+    @Getter
+    @Setter
+    private String password;
+    @Getter
+    @Setter
+    private Store store;
+    @Getter
+    @Setter
+    private String excveptionType;
+    @Getter
+    @Setter
+    private HttpServletRequest request;
+
     // 220612 LJM - added to implement REPLY
-    @Getter private String sender;
-    @Getter private String subject;
-    @Getter private String body;
-    
+    @Getter
+    private String sender;
+    @Getter
+    private String subject;
+    @Getter
+    private String body;
+
     public Pop3Agent(String host, String userid, String password) {
         this.host = host;
         this.userid = userid;
         this.password = password;
     }
-    
+
     public boolean validate() {
         boolean status = false;
 
@@ -89,42 +107,73 @@ public class Pop3Agent {
     /*
      * 페이지 단위로 메일 목록을 보여주어야 함.
      */
-    public String getMessageList() {
-        String result = "";
-        Message[] messages = null;
-
-        if (!connectToStore()) {  // 3.1
-            log.error("POP3 connection failed!");
-            return "POP3 연결이 되지 않아 메일 목록을 볼 수 없습니다.";
-        }
-
-        try {
-            // 메일 폴더 열기
-            Folder folder = store.getFolder("INBOX");  // 3.2
-            folder.open(Folder.READ_ONLY);  // 3.3
-
-            // 현재 수신한 메시지 모두 가져오기
-            messages = folder.getMessages();      // 3.4
-            FetchProfile fp = new FetchProfile();
-            // From, To, Cc, Bcc, ReplyTo, Subject & Date
-            fp.add(FetchProfile.Item.ENVELOPE);
-            folder.fetch(messages, fp);
-
-            MessageFormatter formatter = new MessageFormatter(userid);  //3.5
-            result = formatter.getMessageTable(messages);   // 3.6
-
-            folder.close(true);  // 3.7
-            store.close();       // 3.8
-        } catch (Exception ex) {
-            log.error("Pop3Agent.getMessageList() : exception = {}", ex.getMessage());
-            result = "Pop3Agent.getMessageList() : exception = " + ex.getMessage();
-        } finally {
-            return result;
-        }
-    }
-
-    public String getMessage(int n) {
-        String result = "POP3  서버 연결이 되지 않아 메시지를 볼 수 없습니다.";
+//    public String getMessageList() {
+//        String result = "";
+//        Message[] messages = null;
+//
+//        if (!connectToStore()) {  // 3.1
+//            log.error("POP3 connection failed!");
+//            return "POP3 연결이 되지 않아 메일 목록을 볼 수 없습니다.";
+//        }
+//
+//        try {
+//            // 메일 폴더 열기
+//            Folder folder = store.getFolder("INBOX");  // 3.2
+//            folder.open(Folder.READ_ONLY);  // 3.3
+//
+//            // 현재 수신한 메시지 모두 가져오기
+//            messages = folder.getMessages();      // 3.4
+//            FetchProfile fp = new FetchProfile();
+//            // From, To, Cc, Bcc, ReplyTo, Subject & Date
+//            fp.add(FetchProfile.Item.ENVELOPE);
+//            folder.fetch(messages, fp);
+//
+//            MessageFormatter formatter = new MessageFormatter(userid);  //3.5
+//            result = formatter.getMessageTable(messages);   // 3.6
+//
+//            folder.close(true);  // 3.7
+//            store.close();       // 3.8
+//        } catch (Exception ex) {
+//            log.error("Pop3Agent.getMessageList() : exception = {}", ex.getMessage());
+//            result = "Pop3Agent.getMessageList() : exception = " + ex.getMessage();
+//        } finally {
+//            return result;
+//        }
+//    }
+//
+//    public String getMessage(int n) {
+//        String result = "POP3  서버 연결이 되지 않아 메시지를 볼 수 없습니다.";
+//
+//        if (!connectToStore()) {
+//            log.error("POP3 connection failed!");
+//            return result;
+//        }
+//
+//        try {
+//            Folder folder = store.getFolder("INBOX");
+//            folder.open(Folder.READ_ONLY);
+//
+//            Message message = folder.getMessage(n);
+//
+//            MessageFormatter formatter = new MessageFormatter(userid);
+//            formatter.setRequest(request);  // 210308 LJM - added
+//            result = formatter.getMessage(message);
+//            sender = formatter.getSender();  // 220612 LJM - added
+//            subject = formatter.getSubject();
+//            body = formatter.getBody();
+//
+//            folder.close(true);
+//            store.close();
+//        } catch (Exception ex) {
+//            log.error("Pop3Agent.getMessageList() : exception = {}", ex);
+//            result = "Pop3Agent.getMessage() : exception = " + ex;
+//        } finally {
+//            return result;
+//        }
+//    }
+    // getMessage 메소드 수정 (페이징 기능) 
+    public String getMessage(int msgid) {
+        String result = "POP3 서버 연결이 되지 않아 메시지를 볼 수 없습니다.";
 
         if (!connectToStore()) {
             log.error("POP3 connection failed!");
@@ -135,23 +184,106 @@ public class Pop3Agent {
             Folder folder = store.getFolder("INBOX");
             folder.open(Folder.READ_ONLY);
 
-            Message message = folder.getMessage(n);
+            Message[] messages = folder.getMessages();
+            FetchProfile profile = new FetchProfile();
+            profile.add(FetchProfile.Item.ENVELOPE);
+            folder.fetch(messages, profile);
+
+            // 최신순 정렬 (페이징/목록 화면 기준)
+            List<Message> messageList = new ArrayList<>(List.of(messages));
+            messageList.sort((m1, m2) -> {
+                try {
+                    return m2.getSentDate().compareTo(m1.getSentDate());
+                } catch (Exception e) {
+                    return 0;
+                }
+            });
+
+            if (msgid <= 0 || msgid > messageList.size()) {
+                return "유효하지 않은 메시지 번호입니다.";
+            }
+
+            Message message = messageList.get(msgid - 1);  // 1-based index
 
             MessageFormatter formatter = new MessageFormatter(userid);
-            formatter.setRequest(request);  // 210308 LJM - added
+            formatter.setRequest(request);
             result = formatter.getMessage(message);
-            sender = formatter.getSender();  // 220612 LJM - added
+
+            sender = formatter.getSender();
             subject = formatter.getSubject();
             body = formatter.getBody();
 
             folder.close(true);
             store.close();
         } catch (Exception ex) {
-            log.error("Pop3Agent.getMessageList() : exception = {}", ex);
-            result = "Pop3Agent.getMessage() : exception = " + ex;
-        } finally {
-            return result;
+            log.error("Pop3Agent.getMessage() 예외: {}", ex.getMessage());
+            result = "Pop3Agent.getMessage() 예외: " + ex;
         }
+
+        return result;
+    }
+
+    // 호출만 함
+    public String getMessageList() {
+        return getMessageList(1, Integer.MAX_VALUE, "desc");
+    }
+
+    // 페이징, 정렬 기능이 포함된 새로운 메서드 추가 (오버로딩)
+    public String getMessageList(int page, int pageSize, String sortOrder) {
+        String result = "";
+        Message[] messages;
+
+        if (!connectToStore()) {
+            log.error("POP3 connection failed!");
+            return "POP3 연결이 되지 않아 메일 목록을 볼 수 없습니다.";
+        }
+
+        try {
+            Folder folder = store.getFolder("INBOX");
+            folder.open(Folder.READ_ONLY);
+
+            messages = folder.getMessages();
+            FetchProfile fp = new FetchProfile();
+            fp.add(FetchProfile.Item.ENVELOPE);
+            folder.fetch(messages, fp);
+
+            // 정렬: 날짜 기준 asc/desc
+            List<Message> messageList = List.of(messages);
+            messageList = new ArrayList<>(messageList);  // mutable list
+
+            messageList.sort((m1, m2) -> {
+                try {
+                    if ("asc".equalsIgnoreCase(sortOrder)) {
+                        return m1.getSentDate().compareTo(m2.getSentDate());
+                    } else {
+                        return m2.getSentDate().compareTo(m1.getSentDate());
+                    }
+                } catch (Exception e) {
+                    return 0;
+                }
+            });
+
+            // 페이징 처리
+            int total = messageList.size();
+            int start = (page - 1) * pageSize;
+            int end = Math.min(start + pageSize, total);
+
+            if (start >= total) {
+                result = "<p style='color: gray;'>해당 페이지에 메일이 없습니다.</p>";
+            } else {
+                List<Message> pagedMessages = messageList.subList(start, end);
+                MessageFormatter formatter = new MessageFormatter(userid);
+                result = formatter.getMessageTable(pagedMessages.toArray(new Message[0]));
+            }
+
+            folder.close(true);
+            store.close();
+        } catch (Exception ex) {
+            log.error("Pop3Agent.getMessageList(page) 예외: {}", ex.getMessage());
+            result = "Pop3Agent.getMessageList(page) 예외: " + ex.getMessage();
+        }
+
+        return result;
     }
 
     private boolean connectToStore() {
@@ -178,5 +310,61 @@ public class Pop3Agent {
             return status;
         }
     }
-    
+
+    // 검색 기능 추가를 위한 getMessages() 메서드 추가
+    // Message[]를 리턴하여 Controller에서 받아서 MailService에서 필터링
+    // 기존의 HTML 문자열 리턴 방식을 삭제하진 않음.
+    public Message[] getMessages() {
+        if (!connectToStore()) {
+            log.error("POP3 연결 실패");
+            return new Message[0];
+        }
+
+        try {
+            Folder folder = store.getFolder("INBOX");
+            folder.open(Folder.READ_ONLY);
+
+            Message[] messages = folder.getMessages();
+            FetchProfile profile = new FetchProfile();
+            profile.add(FetchProfile.Item.ENVELOPE);
+            folder.fetch(messages, profile);
+
+            // folder.close(false);
+            // store.close();
+            return messages;
+        } catch (Exception ex) {
+            log.error("getMessages() 예외: {}", ex.getMessage());
+            return new Message[0];
+        }
+    }
+
+    // 메일 안전한 삭제를 위해 추가
+    // 정렬 전 순서 Pop3의 n번째 메일 가져오기 -> 메일 헤더 id값 순회하여 찾기
+    public List<String> getMessageIdList() {
+        List<String> idList = new ArrayList<>();
+        if (!connectToStore()) {
+            return idList;
+        }
+
+        try {
+            Folder folder = store.getFolder("INBOX");
+            folder.open(Folder.READ_ONLY);
+
+            Message[] messages = folder.getMessages();
+            for (Message message : messages) {
+                String[] ids = message.getHeader("Message-ID");
+                if (ids != null && ids.length > 0) {
+                    idList.add(ids[0]);
+                } else {
+                    idList.add("<no-id>");
+                }
+            }
+            folder.close(false);
+            store.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return idList;
+    }
+
 }

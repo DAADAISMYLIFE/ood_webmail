@@ -85,6 +85,7 @@ public class SystemController {
 
                 // Check the login information is valid using <<model>>Pop3Agent.
                 Pop3Agent pop3Agent = agentFactory.pop3AgentCreate(host, userid, password);
+
                 boolean isLoginSuccess = pop3Agent.validate();
 
                 // Now call the correct page according to its validation result.
@@ -133,18 +134,20 @@ public class SystemController {
         return status;
     }
 
-    @GetMapping("/main_menu")
-    public String mainMenu(Model model) {
-        Pop3Agent pop3 = agentFactory.pop3AgentCreate(ROOT_ID, ROOT_ID, ROOT_PASSWORD);
-        pop3.setHost((String) session.getAttribute("host"));
-        pop3.setUserid((String) session.getAttribute("userid"));
-        pop3.setPassword((String) session.getAttribute("password"));
-
-        String messageList = pop3.getMessageList();
-        model.addAttribute("messageList", messageList);
-        return "main_menu";
-    }
-
+    // 현재 이 메소드에서 페이지 처리, 정렬 기능 없이 모든 메일을 한번에 불러옴
+    // MailController에서 정렬, 페이징 적용 메일 목록을 MailListService로 처리하도록 수정하였음
+    // 따라서 주석 처리함. 
+//    @GetMapping("/main_menu")
+//    public String mainMenu(Model model) {
+//        Pop3Agent pop3 = new Pop3Agent();
+//        pop3.setHost((String) session.getAttribute("host"));
+//        pop3.setUserid((String) session.getAttribute("userid"));
+//        pop3.setPassword((String) session.getAttribute("password"));
+//
+//        String messageList = pop3.getMessageList();
+//        model.addAttribute("messageList", messageList);
+//        return "main_menu";
+//    }
     // TODO : 인증없이 일반 유저도 어드민 페이지 와짐. 어드민 인증 로직 추가할 것
     @GetMapping("/admin_menu")
     public String adminMenu(Model model) {
@@ -244,10 +247,10 @@ public class SystemController {
             String folderPath = ctx.getRealPath("/WEB-INF/views/img_test/img");
             byte[] image = imageManager.getImageBytes(folderPath, imageName);
             return image;
+
         } catch (Exception e) {
             log.error("/get_image 예외: {}", e.getMessage());
         }
         return new byte[0];
     }
-
 }
