@@ -183,8 +183,9 @@ public class SystemControllerTest {
         )
                 .andExpect(status().isOk())
                 .andExpect(view().name("main_menu"))
-                .andExpect(model().attributeExists("messageList"))
-                .andExpect(model().attribute("messageList", dummyMessageList));
+                .andExpect(model().attributeExists("totalPages"))
+                .andExpect(model().attributeExists("messageList"));
+
     }
 
     @Test

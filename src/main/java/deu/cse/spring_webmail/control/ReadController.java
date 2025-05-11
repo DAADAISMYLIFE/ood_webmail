@@ -83,15 +83,22 @@ public class ReadController {
         for (Message msg : messages) {
             try {
                 String[] headers = msg.getHeader("Message-ID");
-                if (headers != null && headers.length > 0 && headers[0].equals(id)) {
-                    MessageFormatter formatter = new MessageFormatter(userid);
-                    formatter.setRequest(request);
-                    String content = formatter.getMessage(msg);
-                    session.setAttribute("sender", formatter.getSender());
-                    session.setAttribute("subject", formatter.getSubject());
-                    session.setAttribute("body", formatter.getBody());
-                    model.addAttribute("msg", content);
-                    return "/read_mail/show_message";
+                if (headers != null && headers.length > 0) {
+                    String messageIdHeader = headers[0];
+                    messageIdHeader = messageIdHeader.trim();
+                    if (messageIdHeader.startsWith("<") && messageIdHeader.endsWith(">")) {
+                        messageIdHeader = messageIdHeader.substring(1, messageIdHeader.length() - 1);
+                    }
+                    if (messageIdHeader.equals(id)) {
+                        MessageFormatter formatter = new MessageFormatter(userid);
+                        formatter.setRequest(request);
+                        String content = formatter.getMessage(msg);
+                        session.setAttribute("sender", formatter.getSender());
+                        session.setAttribute("subject", formatter.getSubject());
+                        session.setAttribute("body", formatter.getBody());
+                        model.addAttribute("msg", content);
+                        return "/read_mail/show_message";
+                    }
                 }
             } catch (Exception e) {
                 e.printStackTrace();
@@ -165,7 +172,7 @@ public class ReadController {
 
         boolean found = false;
         String extractedId = messageId.replaceAll("[<>]", "");
-        
+
         for (int i = 0; i < messages.length; i++) {
             try {
                 String[] headers = messages[i].getHeader("Message-ID");
