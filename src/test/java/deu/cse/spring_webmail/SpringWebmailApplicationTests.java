@@ -6,10 +6,10 @@ import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
 class SpringWebmailApplicationTests {
-        @Autowired
-        private 
-	@Test
-	void contextLoads() {
-	}
+
+    @Autowired
+    private @Test
+    void contextLoads() {
+    }
 
 }

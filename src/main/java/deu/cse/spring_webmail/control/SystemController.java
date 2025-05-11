@@ -4,6 +4,8 @@
  */
 package deu.cse.spring_webmail.control;
 
+import deu.cse.spring_webmail.model.AgentFactory;
+import deu.cse.spring_webmail.model.ImageManager;
 import deu.cse.spring_webmail.model.Pop3Agent;
 import deu.cse.spring_webmail.model.UserAdminAgent;
 import java.awt.image.BufferedImage;
@@ -46,6 +48,10 @@ public class SystemController {
     private HttpSession session;
     @Autowired
     private HttpServletRequest request;
+    @Autowired
+    private AgentFactory agentFactory;
+    @Autowired
+    private ImageManager imageManager;
 
     @Value("${root.id}")
     private String ROOT_ID;
@@ -78,7 +84,7 @@ public class SystemController {
                 String password = request.getParameter("passwd");
 
                 // Check the login information is valid using <<model>>Pop3Agent.
-                Pop3Agent pop3Agent = new Pop3Agent(host, userid, password);
+                Pop3Agent pop3Agent = agentFactory.pop3AgentCreate(host, userid, password);
                 boolean isLoginSuccess = pop3Agent.validate();
 
                 // Now call the correct page according to its validation result.
@@ -129,7 +135,7 @@ public class SystemController {
 
     @GetMapping("/main_menu")
     public String mainMenu(Model model) {
-        Pop3Agent pop3 = new Pop3Agent();
+        Pop3Agent pop3 = agentFactory.pop3AgentCreate(ROOT_ID, ROOT_ID, ROOT_PASSWORD);
         pop3.setHost((String) session.getAttribute("host"));
         pop3.setUserid((String) session.getAttribute("userid"));
         pop3.setPassword((String) session.getAttribute("password"));
@@ -139,6 +145,7 @@ public class SystemController {
         return "main_menu";
     }
 
+    // TODO : 인증없이 일반 유저도 어드민 페이지 와짐. 어드민 인증 로직 추가할 것
     @GetMapping("/admin_menu")
     public String adminMenu(Model model) {
         log.debug("root.id = {}, root.password = {}, admin.id = {}",
@@ -161,7 +168,7 @@ public class SystemController {
 
         try {
             String cwd = ctx.getRealPath(".");
-            UserAdminAgent agent = new UserAdminAgent(JAMES_HOST, JAMES_CONTROL_PORT, cwd,
+            UserAdminAgent agent = agentFactory.userAdminAgentCreate(JAMES_HOST, JAMES_CONTROL_PORT, cwd,
                     ROOT_ID, ROOT_PASSWORD, ADMINISTRATOR);
 
             // if (addUser successful)  사용자 등록 성공 팦업창
@@ -197,7 +204,7 @@ public class SystemController {
 
         try {
             String cwd = ctx.getRealPath(".");
-            UserAdminAgent agent = new UserAdminAgent(JAMES_HOST, JAMES_CONTROL_PORT, cwd,
+            UserAdminAgent agent = agentFactory.userAdminAgentCreate(JAMES_HOST, JAMES_CONTROL_PORT, cwd,
                     ROOT_ID, ROOT_PASSWORD, ADMINISTRATOR);
             agent.deleteUsers(selectedUsers);  // 수정!!!
         } catch (Exception ex) {
@@ -209,7 +216,7 @@ public class SystemController {
 
     private List<String> getUserList() {
         String cwd = ctx.getRealPath(".");
-        UserAdminAgent agent = new UserAdminAgent(JAMES_HOST, JAMES_CONTROL_PORT, cwd,
+        UserAdminAgent agent = agentFactory.userAdminAgentCreate(JAMES_HOST, JAMES_CONTROL_PORT, cwd,
                 ROOT_ID, ROOT_PASSWORD, ADMINISTRATOR);
         List<String> userList = agent.getUserList();
         log.debug("userList = {}", userList);
@@ -226,41 +233,21 @@ public class SystemController {
 
     /**
      * https://34codefactory.wordpress.com/2019/06/16/how-to-display-image-in-jsp-using-spring-code-factory/
-     * 
+     *
      * @param imageName
-     * @return 
+     * @return
      */
     @RequestMapping(value = "/get_image/{imageName}")
     @ResponseBody
     public byte[] getImage(@PathVariable String imageName) {
         try {
             String folderPath = ctx.getRealPath("/WEB-INF/views/img_test/img");
-            return getImageBytes(folderPath, imageName);
+            byte[] image = imageManager.getImageBytes(folderPath, imageName);
+            return image;
         } catch (Exception e) {
             log.error("/get_image 예외: {}", e.getMessage());
         }
         return new byte[0];
-    }
-
-    private byte[] getImageBytes(String folderPath, String imageName) {
-        ByteArrayOutputStream byteArrayOutputStream;
-        BufferedImage bufferedImage;
-        byte[] imageInByte;
-        try {
-            byteArrayOutputStream = new ByteArrayOutputStream();
-            bufferedImage = ImageIO.read(new File(folderPath + File.separator + imageName) );
-            String format = imageName.substring(imageName.lastIndexOf(".") + 1);
-            ImageIO.write(bufferedImage, format, byteArrayOutputStream);
-            byteArrayOutputStream.flush();
-            imageInByte = byteArrayOutputStream.toByteArray();
-            byteArrayOutputStream.close();
-            return imageInByte;
-        } catch (FileNotFoundException e) {
-            log.error("getImageBytes 예외: {}", e.getMessage());
-        } catch (Exception e) {
-            log.error("getImageBytes 예외: {}", e.getMessage());
-        }
-        return null;
     }
 
 }
