@@ -4,6 +4,7 @@
  */
 package deu.cse.spring_webmail.control;
 
+import deu.cse.spring_webmail.model.AgentFactory;
 import deu.cse.spring_webmail.model.SmtpAgent;
 import java.io.BufferedOutputStream;
 import java.io.File;
@@ -40,6 +41,8 @@ public class WriteController {
     private ServletContext ctx;
     @Autowired
     private HttpSession session;
+    @Autowired
+    private AgentFactory agentFactory;
     
     @GetMapping("/write_mail")
     public String writeMail() {
@@ -109,7 +112,7 @@ public class WriteController {
         String userid = (String) session.getAttribute("userid");
 
         // 4. SmtpAgent 객체에 메일 관련 정보 설정
-        SmtpAgent agent = new SmtpAgent(host, userid);
+        SmtpAgent agent = agentFactory.smtpAgentCreate(host, userid);
         agent.setTo(to);
         agent.setCc(cc);
         agent.setSubj(subject);

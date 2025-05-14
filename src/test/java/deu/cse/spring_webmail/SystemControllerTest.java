@@ -9,6 +9,7 @@ import deu.cse.spring_webmail.model.AgentFactory;
 import deu.cse.spring_webmail.model.ImageManager;
 import deu.cse.spring_webmail.model.Pop3Agent;
 import deu.cse.spring_webmail.model.UserAdminAgent;
+import jakarta.mail.Message;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
@@ -169,14 +170,39 @@ public class SystemControllerTest {
     @Test
     void mainMenuTest() throws Exception {
         Pop3Agent mockPop3Agent = Mockito.mock(Pop3Agent.class);
+        Message mockMessage = Mockito.mock(Message.class);
 
         BDDMockito.given(agentFactory.pop3AgentCreate(anyString(), anyString(), anyString()))
                 .willReturn(mockPop3Agent);
 
-        String dummyMessageList = "messageList";
-        BDDMockito.given(mockPop3Agent.getMessageList()).willReturn(dummyMessageList);
+        Mockito.when(mockPop3Agent.getMessages()).thenReturn(new Message[]{mockMessage});
 
         mockMvc.perform(MockMvcRequestBuilders.get("/main_menu")
+                .sessionAttr("host", "test.webmail.com")
+                .sessionAttr("userid", "testuser@webmail.com")
+                .sessionAttr("password", "testpassword")
+        )
+                .andExpect(status().isOk())
+                .andExpect(view().name("main_menu"))
+                .andExpect(model().attributeExists("totalPages"))
+                .andExpect(model().attributeExists("messageList"));
+
+    }
+
+    @Test
+    void searchMailTest() throws Exception {
+        Pop3Agent mockPop3Agent = Mockito.mock(Pop3Agent.class);
+        Message mockMessage = Mockito.mock(Message.class);
+
+        BDDMockito.given(agentFactory.pop3AgentCreate(anyString(), anyString(), anyString()))
+                .willReturn(mockPop3Agent);
+
+        Mockito.when(mockPop3Agent.getMessages()).thenReturn(new Message[]{mockMessage});
+
+        mockMvc.perform(MockMvcRequestBuilders.post("/search_mail")
+                .param("keyword", "검색내용")
+                .param("sort", "desc")
+                .param("page", "1")
                 .sessionAttr("host", "test.webmail.com")
                 .sessionAttr("userid", "testuser@webmail.com")
                 .sessionAttr("password", "testpassword")

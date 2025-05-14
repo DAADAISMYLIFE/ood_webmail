@@ -21,4 +21,8 @@ public class AgentFactory {
             String root_id, String root_pass, String admin_id) {
         return new UserAdminAgent(server, port, cwd, root_id, root_pass, admin_id);
     }
+    
+     public SmtpAgent smtpAgentCreate(String host, String userid) {
+        return new SmtpAgent(host, userid);
+    }
 }

@@ -4,6 +4,7 @@
  */
 package deu.cse.spring_webmail.control;
 
+import deu.cse.spring_webmail.model.AgentFactory;
 import deu.cse.spring_webmail.model.MessageFormatter;
 import deu.cse.spring_webmail.model.Pop3Agent;
 import jakarta.mail.Message;
@@ -49,6 +50,8 @@ public class ReadController {
     private HttpSession session;
     @Autowired
     private HttpServletRequest request;
+    @Autowired
+    private AgentFactory agentFactory;
     @Value("${file.download_folder}")
     private String DOWNLOAD_FOLDER;
 
@@ -77,7 +80,7 @@ public class ReadController {
         String userid = (String) session.getAttribute("userid");
         String password = (String) session.getAttribute("password");
 
-        Pop3Agent agent = new Pop3Agent(host, userid, password);
+        Pop3Agent agent = agentFactory.pop3AgentCreate(host, userid, password);
         Message[] messages = agent.getMessages();
 
         for (Message msg : messages) {
@@ -167,7 +170,7 @@ public class ReadController {
 //        } else {
 //            attrs.addFlashAttribute("msg", "메시지 삭제를 실패하였습니다.");
 //        }
-        Pop3Agent agent = new Pop3Agent(host, userid, password);
+        Pop3Agent agent = agentFactory.pop3AgentCreate(host, userid, password);
         Message[] messages = agent.getMessages();
 
         boolean found = false;

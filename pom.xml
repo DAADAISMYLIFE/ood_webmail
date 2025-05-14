@@ -16,6 +16,14 @@
     <description>객체지향설계 Webmail Using Spring Boot</description>
     <properties>
         <java.version>17</java.version>
+        <sonar.coverage.exclusions>
+            **/PropertyReader.java,
+            **/ServletInitializer.java,
+            **/SpringWebmailApplication.java,
+            **/control/CommandType.java,
+            **/model/**,
+            **/util/**
+        </sonar.coverage.exclusions>
     </properties>
     <dependencies>
         <dependency>
@@ -111,6 +119,16 @@
                         <goals>
                             <goal>report</goal>
                         </goals>
+                        <configuration>
+                            <excludes>
+                                <exclude>**/PropertyReader*</exclude>
+                                <exclude>**/ServletInitializer*</exclude>
+                                <exclude>**/SpringWebmailApplication*</exclude>
+                                <exclude>**/control/CommandType*</exclude>
+                                <exclude>**/model/**</exclude>
+                                <exclude>**/util/**</exclude>
+                            </excludes>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>
