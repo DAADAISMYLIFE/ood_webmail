@@ -86,9 +86,10 @@ public class ReadController {
                 if (headers != null && headers.length > 0) {
                     String messageIdHeader = headers[0];
                     messageIdHeader = messageIdHeader.trim();
-                    if (messageIdHeader.startsWith("<") && messageIdHeader.endsWith(">")) {
-                        messageIdHeader = messageIdHeader.substring(1, messageIdHeader.length() - 1);
-                    }
+                    messageIdHeader = messageIdHeader.replace("<", "").replace(">", "");
+                    //if (messageIdHeader.startsWith("<") && messageIdHeader.endsWith(">")) {
+                    //    messageIdHeader = messageIdHeader.substring(1, messageIdHeader.length() - 1);
+                    //}
                     if (messageIdHeader.equals(id)) {
                         MessageFormatter formatter = new MessageFormatter(userid);
                         formatter.setRequest(request);

@@ -6,10 +6,14 @@ package deu.cse.spring_webmail.model;
 
 import jakarta.mail.Message;
 import jakarta.servlet.http.HttpServletRequest;
+import java.util.List;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+
 
 /**
  *
@@ -57,10 +61,13 @@ public class MessageFormatter {
                     + "?msgid=" + (i + 1) + "> 삭제 </a>" + "</td>"
                     + " </tr>");
         }
+        
         buffer.append("</table>");
 
         return buffer.toString();
+        
 //        return "MessageFormatter 테이블 결과";
+        
     }
 
     public String getMessage(Message message) {
@@ -81,13 +88,15 @@ public class MessageFormatter {
         buffer.append("제 &nbsp;&nbsp;&nbsp;  목: " + parser.getSubject() + " <br> <hr>");
 
         buffer.append(parser.getBody());
-
-        String attachedFile = parser.getFileName();
-        if (attachedFile != null) {
-            buffer.append("<br> <hr> 첨부파일: <a href=download"
+        
+        List<String> attachedFiles = parser.getAttachmentFileNames();
+        if (attachedFiles != null) {
+            for (String attachedFile : attachedFiles) {
+                buffer.append("<br> <hr> 첨부파일: <a href=download"
                     + "?userid=" + this.userid
                     + "&filename=" + attachedFile.replaceAll(" ", "%20")
                     + " target=_top> " + attachedFile + "</a> <br>");
+            }
         }
 
         return buffer.toString();

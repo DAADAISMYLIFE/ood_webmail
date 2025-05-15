@@ -50,31 +50,34 @@ public class WriteController {
     
     @PostMapping("/write_mail.do")
     public String writeMailDo(@RequestParam String to, @RequestParam String cc, 
-            @RequestParam String subj, @RequestParam String body, 
-            @RequestParam(name="file1") MultipartFile upFile,
-            RedirectAttributes attrs) {
+                              @RequestParam String subj, @RequestParam String body, 
+                              @RequestParam(name="file1") MultipartFile[] upFiles,
+                              RedirectAttributes attrs) {
         log.debug("write_mail.do: to = {}, cc = {}, subj = {}, body = {}, file1 = {}",
-                to, cc, subj, body, upFile.getOriginalFilename());
+                to, cc, subj, body, upFiles.length);
         
-        //메일 제목이 공란인 경우
-        //제목 없음으로 제목 대체후 하이퍼 링크 생성해 내용확인가능
+        //메일 제목이 공란인 경우 제목 없음으로 제목 대체후 하이퍼 링크 생성해 내용확인가능
         if (subj == null || subj.trim().isEmpty()) {
             subj = "제목 없음";
         }
         
         // FormParser 클래스의 기능은 매개변수로 모두 넘어오므로 더이상 필요 없음.
         // 업로드한 파일이 있으면 해당 파일을 UPLOAD_FOLDER에 저장해 주면 됨.
-        if (!"".equals(upFile.getOriginalFilename())) {
-            String basePath = ctx.getRealPath(UPLOAD_FOLDER);
-            log.debug("{} 파일을 {} 폴더에 저장...", upFile.getOriginalFilename(), basePath);
-            File f = new File(basePath + File.separator + upFile.getOriginalFilename());
-            try (BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(f))) {
-                bos.write(upFile.getBytes());
-            } catch (IOException e) {
-                log.error("upload.do: 오류 발생 - {}", e.getMessage());
+        for (MultipartFile upFile : upFiles) {
+            if (!"".equals(upFile.getOriginalFilename())) {
+                String basePath = ctx.getRealPath(UPLOAD_FOLDER);
+                log.debug("{} 파일을 {} 폴더에 저장...", upFile.getOriginalFilename(), basePath);
+                File f = new File(basePath + File.separator + upFile.getOriginalFilename());
+                try (BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(f))) {
+                    bos.write(upFile.getBytes());
+                } catch (IOException e) {
+                    log.error("upload.do: 오류 발생 - {}", e.getMessage());
+                }
             }
         }
-        boolean sendSuccessful = sendMessage(to, cc, subj, body, upFile);
+        
+        boolean sendSuccessful = sendMessage(to, cc, subj, body, upFiles);
+        
         if (sendSuccessful) {
             attrs.addFlashAttribute("msg", "메일 전송이 성공했습니다.");
         } else {
@@ -95,15 +98,11 @@ public class WriteController {
      * @param upFile
      * @return 
      */
-    private boolean sendMessage(String to, String cc, String subject, String body, MultipartFile upFile) {
+    private boolean sendMessage(String to, String cc, String subject, String body, MultipartFile[] upFiles) {
         boolean status = false;
 
         // 1. toAddress, ccAddress, subject, body, file1 정보를 파싱하여 추출
-
-
         // 2.  request 객체에서 HttpSession 객체 얻기
-
-
         // 3. HttpSession 객체에서 메일 서버, 메일 사용자 ID 정보 얻기
         String host = (String) session.getAttribute("host");
         String userid = (String) session.getAttribute("userid");
@@ -114,14 +113,15 @@ public class WriteController {
         agent.setCc(cc);
         agent.setSubj(subject);
         agent.setBody(body);
-        String fileName = upFile.getOriginalFilename();
         
-        if (fileName != null && !"".equals(fileName)) {
-            log.debug("sendMessage: 파일({}) 첨부 필요", fileName);
-            File f = new File(ctx.getRealPath(UPLOAD_FOLDER) + File.separator + fileName);
-            agent.setFile1(f.getAbsolutePath());
+        for (MultipartFile upFile : upFiles) {
+            String fileName = upFile.getOriginalFilename();
+            if (fileName != null && !"".equals(fileName)) {
+                log.debug("sendMessage: 파일({}) 첨부 필요", fileName);
+                File f = new File(ctx.getRealPath(UPLOAD_FOLDER) + File.separator + fileName);
+                agent.addAttachment(f.getAbsolutePath());
+            }
         }
-
         // 5. 메일 전송 권한 위임
         if (agent.sendMessage()) {
             status = true;
