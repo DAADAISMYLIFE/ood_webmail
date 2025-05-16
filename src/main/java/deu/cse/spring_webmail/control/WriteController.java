@@ -128,4 +128,20 @@ public class WriteController {
         }
         return status;
     }  // sendMessage()
+
+    
+    /* => 비동기로 동시에 여러 일하게 해서 속도 개선해도 되나..
+    public void sendMessageAsync() {
+        new Thread(() -> {
+            boolean success = sendMessage();
+            if (success) {
+                log.info("메일 전송 성공");
+            } else {
+                log.error("메일 전송 실패");
+            }
+        }).start();
+    }
+    */
+    
+    
 }

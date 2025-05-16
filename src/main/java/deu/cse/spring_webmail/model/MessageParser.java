@@ -42,9 +42,13 @@ public class MessageParser {
     private List<String> attachmentFileNames = new ArrayList<>();
     
     /*
-    public MessageParser(Message message, String userid) {
-        this.message = message;
-        this.userid = userid;
+    public String getMessageId() {
+        try {
+            String[] messageIdHeader = message.getHeader("Message-ID");
+            return (messageIdHeader != null && messageIdHeader.length > 0) ? messageIdHeader[0] : "";
+        } catch (Exception e) {
+            return "";
+        }
     }
     */
     
