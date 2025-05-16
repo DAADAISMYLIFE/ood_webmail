@@ -73,7 +73,6 @@ public class MailSearchService {
         int end = Math.min(start + pageSize, filteredList.size());
         List<Message> pagedList = filteredList.subList(start, end);
 
-        // return makeMessageTable(filteredList);
         return MailTableUtil.buildMessageTable(pagedList, userid);
     }
 

@@ -48,10 +48,9 @@ public class SystemController {
     private HttpSession session;
     @Autowired
     private HttpServletRequest request;
-    @Autowired
-    private AgentFactory agentFactory;
-    @Autowired
-    private ImageManager imageManager;
+
+    private final ImageManager imageManager;
+    private final AgentFactory agentFactory;
 
     @Value("${root.id}")
     private String ROOT_ID;
@@ -63,6 +62,12 @@ public class SystemController {
     private Integer JAMES_CONTROL_PORT;
     @Value("${james.host}")
     private String JAMES_HOST;
+
+    @Autowired
+    public SystemController(AgentFactory agentFactory, ImageManager imageManager) {
+        this.imageManager = imageManager;
+        this.agentFactory = agentFactory;
+    }
 
     @GetMapping("/")
     public String index() {
@@ -76,11 +81,12 @@ public class SystemController {
     @RequestMapping(value = "/login.do", method = {RequestMethod.GET, RequestMethod.POST})
     public String loginDo(@RequestParam Integer menu) {
         String url = "";
+        String userIdParam = "userid";
         log.debug("로그인 처리: menu = {}", menu);
         switch (menu) {
             case CommandType.LOGIN:
                 String host = (String) request.getSession().getAttribute("host");
-                String userid = request.getParameter("userid");
+                String userid = request.getParameter(userIdParam);
                 String password = request.getParameter("passwd");
 
                 // Check the login information is valid using <<model>>Pop3Agent.
@@ -92,12 +98,12 @@ public class SystemController {
                 if (isLoginSuccess) {
                     if (isAdmin(userid)) {
                         // HttpSession 객체에 userid를 등록해 둔다.
-                        session.setAttribute("userid", userid);
+                        session.setAttribute(userIdParam, userid);
                         // response.sendRedirect("admin_menu.jsp");
                         url = "redirect:/admin_menu";
                     } else {
                         // HttpSession 객체에 userid와 password를 등록해 둔다.
-                        session.setAttribute("userid", userid);
+                        session.setAttribute(userIdParam, userid);
                         session.setAttribute("password", password);
                         // response.sendRedirect("main_menu.jsp");
                         url = "redirect:/main_menu";  // URL이 http://localhost:8080/webmail/main_menu 이와 같이 됨.
@@ -134,20 +140,6 @@ public class SystemController {
         return status;
     }
 
-    // 현재 이 메소드에서 페이지 처리, 정렬 기능 없이 모든 메일을 한번에 불러옴
-    // MailController에서 정렬, 페이징 적용 메일 목록을 MailListService로 처리하도록 수정하였음
-    // 따라서 주석 처리함. 
-//    @GetMapping("/main_menu")
-//    public String mainMenu(Model model) {
-//        Pop3Agent pop3 = new Pop3Agent();
-//        pop3.setHost((String) session.getAttribute("host"));
-//        pop3.setUserid((String) session.getAttribute("userid"));
-//        pop3.setPassword((String) session.getAttribute("password"));
-//
-//        String messageList = pop3.getMessageList();
-//        model.addAttribute("messageList", messageList);
-//        return "main_menu";
-//    }
     // TODO : 인증없이 일반 유저도 어드민 페이지 와짐. 어드민 인증 로직 추가할 것
     @GetMapping("/admin_menu")
     public String adminMenu(Model model) {
@@ -245,9 +237,7 @@ public class SystemController {
     public byte[] getImage(@PathVariable String imageName) {
         try {
             String folderPath = ctx.getRealPath("/WEB-INF/views/img_test/img");
-            byte[] image = imageManager.getImageBytes(folderPath, imageName);
-            return image;
-
+            return imageManager.getImageBytes(folderPath, imageName);
         } catch (Exception e) {
             log.error("/get_image 예외: {}", e.getMessage());
         }

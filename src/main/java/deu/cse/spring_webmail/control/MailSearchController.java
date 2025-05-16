@@ -22,14 +22,15 @@ import org.springframework.web.bind.annotation.RequestParam;
 @Controller
 public class MailSearchController {
 
+    private final AgentFactory agentFactory;
+    
     @Autowired
-    private HttpSession session;
-
-    @Autowired
-    private AgentFactory agentFactory;
+    public MailSearchController(AgentFactory agentFactory){
+        this.agentFactory = agentFactory;
+    }
 
     @PostMapping("/search_mail")
-    public String searchMail(@RequestParam("keyword") String keyword,
+    public String searchMail(HttpSession session, @RequestParam("keyword") String keyword,
             @RequestParam(value = "sort", defaultValue = "desc") String sort,
             @RequestParam(value = "page", defaultValue = "1") int page,
             Model model) {

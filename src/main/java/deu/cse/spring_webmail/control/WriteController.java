@@ -25,45 +25,51 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 /**
  * 메일 쓰기를 위한 제어기
- * 
+ *
  * @author Prof.Jong Min Lee
  */
 @Controller
 @PropertySource("classpath:/system.properties")
 @Slf4j
 public class WriteController {
+
     @Value("${file.upload_folder}")
     private String UPLOAD_FOLDER;
     @Value("${file.max_size}")
     private String MAX_SIZE;
-    
+
     @Autowired
     private ServletContext ctx;
     @Autowired
     private HttpSession session;
+
+    private final AgentFactory agentFactory;
+
     @Autowired
-    private AgentFactory agentFactory;
-    
+    public WriteController(AgentFactory agentFactory) {
+        this.agentFactory = agentFactory;
+    }
+
     @GetMapping("/write_mail")
     public String writeMail() {
         log.debug("write_mail called...");
         session.removeAttribute("sender");  // 220612 LJM - 메일 쓰기 시는 
         return "write_mail/write_mail";
     }
-    
+
     @PostMapping("/write_mail.do")
-    public String writeMailDo(@RequestParam String to, @RequestParam String cc, 
-                              @RequestParam String subj, @RequestParam String body, 
-                              @RequestParam(name="file1") MultipartFile[] upFiles,
-                              RedirectAttributes attrs) {
+    public String writeMailDo(@RequestParam String to, @RequestParam String cc,
+            @RequestParam String subj, @RequestParam String body,
+            @RequestParam(name = "file1") MultipartFile[] upFiles,
+            RedirectAttributes attrs) {
         log.debug("write_mail.do: to = {}, cc = {}, subj = {}, body = {}, file1 = {}",
                 to, cc, subj, body, upFiles.length);
-        
+
         //메일 제목이 공란인 경우 제목 없음으로 제목 대체후 하이퍼 링크 생성해 내용확인가능
         if (subj == null || subj.trim().isEmpty()) {
             subj = "제목 없음";
         }
-        
+
         // FormParser 클래스의 기능은 매개변수로 모두 넘어오므로 더이상 필요 없음.
         // 업로드한 파일이 있으면 해당 파일을 UPLOAD_FOLDER에 저장해 주면 됨.
         for (MultipartFile upFile : upFiles) {
@@ -78,28 +84,28 @@ public class WriteController {
                 }
             }
         }
-        
+
         boolean sendSuccessful = sendMessage(to, cc, subj, body, upFiles);
-        
+
         if (sendSuccessful) {
             attrs.addFlashAttribute("msg", "메일 전송이 성공했습니다.");
         } else {
             attrs.addFlashAttribute("msg", "메일 전송이 실패했습니다.");
         }
-        
+
         return "redirect:/main_menu";
     }
-    
+
     /**
-     * FormParser 클래스를 사용하지 않고 Spring Framework에서 이미 획득한 매개변수 정보를 사용하도록
-     * 기존 webmail 소스 코드를 수정함.
-     * 
+     * FormParser 클래스를 사용하지 않고 Spring Framework에서 이미 획득한 매개변수 정보를 사용하도록 기존
+     * webmail 소스 코드를 수정함.
+     *
      * @param to
      * @param cc
      * @param sub
      * @param body
      * @param upFile
-     * @return 
+     * @return
      */
     private boolean sendMessage(String to, String cc, String subject, String body, MultipartFile[] upFiles) {
         boolean status = false;
@@ -116,7 +122,7 @@ public class WriteController {
         agent.setCc(cc);
         agent.setSubj(subject);
         agent.setBody(body);
-        
+
         for (MultipartFile upFile : upFiles) {
             String fileName = upFile.getOriginalFilename();
             if (fileName != null && !"".equals(fileName)) {

@@ -16,6 +16,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import javax.management.MalformedObjectNameException;
 
 public class UserAdminAgent {
 
@@ -26,7 +27,6 @@ public class UserAdminAgent {
     private String ROOT_ID;
     private String ROOT_PASSWORD;
     private String ADMIN_ID;
-    private final String EOL = "\r\n";
     private String cwd;
     private boolean isConnected = false;
     private JMXConnector jmxConnector;
@@ -65,9 +65,8 @@ public class UserAdminAgent {
     }
 
     // MBean 객체 생성
-    private ObjectName getMBeanObject() throws Exception {
-        ObjectName mbeanName = new ObjectName("org.apache.james:type=component,name=usersrepository");
-        return mbeanName;
+    private ObjectName getMBeanObject() throws MalformedObjectNameException {
+        return new ObjectName("org.apache.james:type=component,name=usersrepository");
     }
 
     public boolean addUser(String userId, String password) {
@@ -125,8 +124,21 @@ public class UserAdminAgent {
         return userList;
     }
 
+    private boolean invokeDeleteUserOperation(MBeanServerConnection jmxConnection, ObjectName mbeanName, String userId) {
+        try {
+            jmxConnection.invoke(mbeanName, "deleteUser",
+                    new Object[]{userId},
+                    new String[]{String.class.getName()});
+            log.debug("User {} deleted successfully", userId);
+            return true;
+        } catch (Exception ex) {
+            log.error("Failed to delete user {}: {}", userId, ex.getMessage(), ex);
+            return false;
+        }
+    }
+
     public boolean deleteUsers(String[] userList) {
-        boolean status = true; // 모든 삭제 성공 시 true, 하나라도 실패 시 false
+        boolean status = true;
 
         if (!isConnected) {
             log.warn("Not connected to JMX server");
@@ -137,13 +149,9 @@ public class UserAdminAgent {
             ObjectName mbeanName = getMBeanObject();
 
             for (String userId : userList) {
-                try {
-                    jmxConnection.invoke(mbeanName, "deleteUser",
-                            new Object[]{userId},
-                            new String[]{String.class.getName()});
-                    log.debug("User {} deleted successfully", userId);
-                } catch (Exception ex) {
-                    log.error("Failed to delete user {}: {}", userId, ex.getMessage(), ex);
+                boolean userDeletionSuccess = invokeDeleteUserOperation(jmxConnection, mbeanName, userId);
+
+                if (!userDeletionSuccess) {
                     status = false;
                 }
             }

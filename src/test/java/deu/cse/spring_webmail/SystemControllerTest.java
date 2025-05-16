@@ -19,7 +19,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.mock.web.MockHttpSession;
-import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 
@@ -35,14 +34,7 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 
 @WebMvcTest(SystemController.class)
-@TestPropertySource(properties = {
-    "root.id=test_root",
-    "root.password=test_password",
-    "admin.id=admin@webmail.com",
-    "james.control.port=9999",
-    "james.host=test.webmail.com"
-})
-public class SystemControllerTest {
+class SystemControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
@@ -231,7 +223,7 @@ public class SystemControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(view().name("admin/admin_menu"))
                 .andExpect(model().attributeExists("userList"))
-                .andExpect(model().attribute("userList", dummyUserList.stream().sorted().collect(java.util.stream.Collectors.toList())));
+                .andExpect(model().attribute("userList", dummyUserList.stream().sorted().toList()));
     }
 
     // 유저 추가
@@ -256,7 +248,7 @@ public class SystemControllerTest {
                 anyString(), anyString(), anyString()
         )).willReturn(mockAdminAgent);
 
-        BDDMockito.given(mockAdminAgent.addUser(eq(testUserid), eq(testPassword)))
+        BDDMockito.given(mockAdminAgent.addUser(testUserid, testPassword))
                 .willReturn(true);
         mockMvc.perform(MockMvcRequestBuilders.post("/add_user.do")
                 .param("id", testUserid)
@@ -279,7 +271,7 @@ public class SystemControllerTest {
                 anyString(), anyString(), anyString()
         )).willReturn(mockAdminAgent);
 
-        BDDMockito.given(mockAdminAgent.addUser(eq(testUserid), eq(testPassword)))
+        BDDMockito.given(mockAdminAgent.addUser(testUserid, testPassword))
                 .willReturn(false);
         mockMvc.perform(MockMvcRequestBuilders.post("/add_user.do")
                 .param("id", testUserid)
@@ -310,7 +302,7 @@ public class SystemControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(view().name("admin/delete_user"))
                 .andExpect(model().attributeExists("userList"))
-                .andExpect(model().attribute("userList", dummyUserList.stream().sorted().collect(java.util.stream.Collectors.toList())));
+                .andExpect(model().attribute("userList", dummyUserList.stream().sorted().toList()));
     }
 
     // 유저 삭제 do

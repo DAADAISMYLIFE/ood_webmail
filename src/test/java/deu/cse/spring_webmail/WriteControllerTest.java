@@ -19,11 +19,8 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.mock.web.MockMultipartFile;
 
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.flash;
 
-import static org.mockito.ArgumentMatchers.eq;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 
@@ -32,7 +29,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * @author qkekd
  */
 @WebMvcTest(WriteController.class)
-public class WriteControllerTest {
+class WriteControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
@@ -57,7 +54,7 @@ public class WriteControllerTest {
         String userid = "user@test.com";
 
         SmtpAgent mockSmtpAgent = Mockito.mock(SmtpAgent.class);
-        BDDMockito.given(agentFactory.smtpAgentCreate(eq(host), eq(userid)))
+        BDDMockito.given(agentFactory.smtpAgentCreate(host, userid))
                 .willReturn(mockSmtpAgent);
         BDDMockito.given(mockSmtpAgent.sendMessage()).willReturn(true);
         mockMvc.perform(MockMvcRequestBuilders.multipart("/write_mail.do")
@@ -84,7 +81,7 @@ public class WriteControllerTest {
         String userid = "user@test.com";
 
         SmtpAgent mockSmtpAgent = Mockito.mock(SmtpAgent.class);
-        BDDMockito.given(agentFactory.smtpAgentCreate(eq(host), eq(userid)))
+        BDDMockito.given(agentFactory.smtpAgentCreate(host, userid))
                 .willReturn(mockSmtpAgent);
         BDDMockito.given(mockSmtpAgent.sendMessage()).willReturn(false);
 

@@ -50,28 +50,17 @@ public class ReadController {
     private HttpSession session;
     @Autowired
     private HttpServletRequest request;
-    @Autowired
-    private AgentFactory agentFactory;
+
+    private final AgentFactory agentFactory;
+
     @Value("${file.download_folder}")
     private String DOWNLOAD_FOLDER;
 
-//    @GetMapping("/show_message")
-//    public String showMessage(@RequestParam Integer msgid, Model model) {
-//        log.debug("download_folder = {}", DOWNLOAD_FOLDER);
-//        
-//        Pop3Agent pop3 = new Pop3Agent();
-//        pop3.setHost((String) session.getAttribute("host"));
-//        pop3.setUserid((String) session.getAttribute("userid"));
-//        pop3.setPassword((String) session.getAttribute("password"));
-//        pop3.setRequest(request);
-//        
-//        String msg = pop3.getMessage(msgid);
-//        session.setAttribute("sender", pop3.getSender());  // 220612 LJM - added
-//        session.setAttribute("subject", pop3.getSubject());
-//        session.setAttribute("body", pop3.getBody());
-//        model.addAttribute("msg", msg);
-//        return "/read_mail/show_message";
-//    }
+    @Autowired
+    public ReadController(AgentFactory agentFactory) {
+        this.agentFactory = agentFactory;
+    }
+
     // 기존 메서드 주석 처리함. 메일 테이블 생성 시
     // message-id 포함 링크로 변경하였음
     @GetMapping("/show_message")
@@ -90,9 +79,6 @@ public class ReadController {
                     String messageIdHeader = headers[0];
                     messageIdHeader = messageIdHeader.trim();
                     messageIdHeader = messageIdHeader.replace("<", "").replace(">", "");
-                    //if (messageIdHeader.startsWith("<") && messageIdHeader.endsWith(">")) {
-                    //    messageIdHeader = messageIdHeader.substring(1, messageIdHeader.length() - 1);
-                    //}
                     if (messageIdHeader.equals(id)) {
                         MessageFormatter formatter = new MessageFormatter(userid);
                         formatter.setRequest(request);
@@ -163,14 +149,7 @@ public class ReadController {
         String host = (String) session.getAttribute("host");
         String userid = (String) session.getAttribute("userid");
         String password = (String) session.getAttribute("password");
-
-        // Pop3Agent pop3 = new Pop3Agent(host, userid, password);
-        // boolean deleteSuccessful = pop3.deleteMessage(msgId, true);
-        // if (deleteSuccessful) {
-//            attrs.addFlashAttribute("msg", "메시지 삭제를 성공하였습니다.");
-//        } else {
-//            attrs.addFlashAttribute("msg", "메시지 삭제를 실패하였습니다.");
-//        }
+        
         Pop3Agent agent = agentFactory.pop3AgentCreate(host, userid, password);
         Message[] messages = agent.getMessages();
 

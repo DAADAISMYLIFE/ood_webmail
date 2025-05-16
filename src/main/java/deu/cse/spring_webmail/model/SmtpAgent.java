@@ -37,7 +37,6 @@ public class SmtpAgent {
     @Getter @Setter protected String cc = null;
     @Getter @Setter protected String subj = null;
     @Getter @Setter protected String body = null;
-    //@Getter @Setter protected String file1 = null;
     private List<String> attachments = new ArrayList<>();
     
     public SmtpAgent(String host, String userid) {
