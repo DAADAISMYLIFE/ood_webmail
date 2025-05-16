@@ -14,6 +14,8 @@ import jakarta.mail.internet.MimeUtility;
 import java.io.File;
 import java.io.FileOutputStream;
 import jakarta.servlet.http.HttpServletRequest;
+import java.util.ArrayList;
+import java.util.List;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
@@ -37,6 +39,11 @@ public class MessageParser {
     @Getter @Setter private String body;
     @Getter @Setter private String fileName;
     @Getter @Setter private String downloadTempDir = "C:/temp/download/";
+    private List<String> attachmentFileNames = new ArrayList<>();
+    
+    public List<String> getAttachmentFileNames() {
+        return attachmentFileNames;
+    }
     
     public MessageParser(Message message, String userid, HttpServletRequest request) {
         this(message, userid);
@@ -87,11 +94,10 @@ public class MessageParser {
     private void getPart(Part p) throws Exception {
         String disp = p.getDisposition();
 
-        if (disp != null && (disp.equalsIgnoreCase(Part.ATTACHMENT)
-                || disp.equalsIgnoreCase(Part.INLINE))) {  // 첨부 파일
-//            fileName = p.getFileName();
+        if (disp != null && (disp.equalsIgnoreCase(Part.ATTACHMENT) || disp.equalsIgnoreCase(Part.INLINE))) {  // 첨부 파일
+
             fileName = MimeUtility.decodeText(p.getFileName());
-//            fileName = fileName.replaceAll(" ", "%20");
+
             if (fileName != null) {
                 // 첨부 파일을 서버의 내려받기 임시 저장소에 저장
                 String tempUserDir = this.downloadTempDir + File.separator + this.userid;
@@ -101,14 +107,13 @@ public class MessageParser {
                 }
 
                 String filename = MimeUtility.decodeText(p.getFileName());
-                // 파일명에 " "가 있을 경우 서블릿에 파라미터로 전달시 문제 발생함.
-                // " "를 모두 "_"로 대체함.
-//                filename = filename.replaceAll("%20", " ");
+                // 파일명에 " "가 있을 경우 서블릿에 파라미터로 전달시 문제 발생, " "를 모두 "_"로 대체함.
                 DataHandler dh = p.getDataHandler();
                 FileOutputStream fos = new FileOutputStream(tempUserDir + File.separator + filename);
                 dh.writeTo(fos);
                 fos.flush();
                 fos.close();
+                attachmentFileNames.add(filename);
             }
         } else {  // 메일 본문
             if (p.isMimeType("text/*")) {

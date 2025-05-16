@@ -17,6 +17,8 @@ import jakarta.mail.internet.MimeBodyPart;
 import jakarta.mail.internet.MimeMultipart;
 import jakarta.mail.internet.MimeUtility;
 import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
 import lombok.Getter;
 import lombok.Setter;
@@ -35,11 +37,19 @@ public class SmtpAgent {
     @Getter @Setter protected String cc = null;
     @Getter @Setter protected String subj = null;
     @Getter @Setter protected String body = null;
-    @Getter @Setter protected String file1 = null;
-
+    //@Getter @Setter protected String file1 = null;
+    private List<String> attachments = new ArrayList<>();
+    
     public SmtpAgent(String host, String userid) {
         this.host = host;
         this.userid = userid;
+    }
+    
+    // 첨부파일 추가 메서드
+    public void addAttachment(String filePath) {
+        if (filePath != null && !filePath.trim().isEmpty()) {
+            attachments.add(filePath);
+        }
     }
 
     // LJM 100418 -  현재 로그인한 사용자의 이메일 주소를 반영하도록 수정되어야 함. - test only
@@ -100,30 +110,32 @@ public class SmtpAgent {
             mp.addBodyPart(mbp);
 
             // 첨부 파일 추가
-            if (this.file1 != null) {
-                MimeBodyPart a1 = new MimeBodyPart();
-                DataSource src = new FileDataSource(this.file1);
-                a1.setDataHandler(new DataHandler(src));
-                // 22011 LJM: 윈도우즈/우분투에 따라서 달라져야 함
-                int index = this.file1.lastIndexOf(File.separator);
-                String fileName = this.file1.substring(index + 1);
-                // "B": base64, "Q": quoted-printable
-                a1.setFileName(MimeUtility.encodeText(fileName, "UTF-8", "B"));
-                mp.addBodyPart(a1);
+            for (String filePath : attachments) {
+                if (filePath != null) {
+                    MimeBodyPart a1 = new MimeBodyPart();
+                    DataSource src = new FileDataSource(filePath);
+                    a1.setDataHandler(new DataHandler(src));
+                    // 22011 LJM: 윈도우즈/우분투에 따라서 달라져야 함
+                    int index = filePath.lastIndexOf(File.separator);
+                    String fileName = filePath.substring(index + 1);
+                    // "B": base64, "Q": quoted-printable
+                    a1.setFileName(MimeUtility.encodeText(fileName, "UTF-8", "B"));
+                    mp.addBodyPart(a1);
+                }
             }
             msg.setContent(mp);
 
             // 메일 전송
             Transport.send(msg);
 
-            // 메일 전송 완료되었으므로 서버에 저장된
-            // 첨부 파일 삭제함
-            if (this.file1 != null) {
-                File f = new File(this.file1);
+            // 첨부 파일 삭제
+            for (String filePath : attachments) {
+                File f = new File(filePath);
                 if (!f.delete()) {
-                    log.error(this.file1 + ": 파일 삭제가 제대로 안 됨.");
+                    log.error(filePath + ": 파일 삭제가 제대로 안 됨.");
                 }
             }
+            
             status = true;
         } catch (Exception ex) {
             log.error("sendMessage() error: {}", ex);
