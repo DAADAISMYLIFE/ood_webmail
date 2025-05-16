@@ -41,7 +41,7 @@
                         <tr>
                             <td> 수신 </td>
                             <td> <input type="text" id="toField" name="to" size="80"
-                                        value="${!empty param['sender'] ? param['sender'] : ''}"
+                                        value="${!empty param['sender'] ? param['sender'] : ''}" >
                                         <!--    value=<%=request.getParameter("recv") == null ? "" : request.getParameter("recv")%>  -->
                             </td>
                         </tr>
@@ -60,27 +60,27 @@
                         <tr>  <%-- TextArea    --%>
                             <td colspan="2">
                                 <textarea rows="15" name="body" cols="80">${!empty param['sender'] ?
-                                                                            "
+"
 
 
 
-                                                                            ----
-                                                                            " += sessionScope['body'] : ''}</textarea> 
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>첨부 파일</td>
-                            <td> <input type="file" name="file1"  size="80">  </td>
-                        </tr>
-                        <tr>
-                            <td colspan="2">
-                                <input type="submit" value="메일 보내기">
-                                <input type="reset" value="다시 입력">
-                            </td>
-                        </tr>
-                    </table>
-                </form>
-            </div>
+
+----
+" += sessionScope['body'] : ''}</textarea> 
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>첨부 파일</td>
+                        <td> <input type="file" name="file1"  size="80" multiple>  </td>
+                    </tr>
+                    <tr>
+                        <td colspan="2">
+                            <input type="submit" value="메일 보내기">
+                            <input type="reset" value="다시 입력">
+                        </td>
+                    </tr>
+                </table>
+            </form>
             <!-- 주소록 표시 -->
             <div style="flex: 1;">
                 <h3>주소록</h3>
