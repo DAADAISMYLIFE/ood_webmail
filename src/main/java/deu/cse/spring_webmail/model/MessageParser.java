@@ -41,17 +41,6 @@ public class MessageParser {
     @Getter @Setter private String downloadTempDir = "C:/temp/download/";
     private List<String> attachmentFileNames = new ArrayList<>();
     
-    /*
-    public String getMessageId() {
-        try {
-            String[] messageIdHeader = message.getHeader("Message-ID");
-            return (messageIdHeader != null && messageIdHeader.length > 0) ? messageIdHeader[0] : "";
-        } catch (Exception e) {
-            return "";
-        }
-    }
-    */
-    
     public List<String> getAttachmentFileNames() {
         return attachmentFileNames;
     }
