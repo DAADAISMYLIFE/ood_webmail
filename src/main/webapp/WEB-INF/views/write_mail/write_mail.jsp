@@ -7,7 +7,7 @@
 
 <!DOCTYPE html>
 
-<%-- @taglib  prefix="c" uri="http://java.sun.com/jsp/jstl/core" --%>
+<%@taglib  prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 
 
 <html>
@@ -15,6 +15,16 @@
         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
         <title>메일 쓰기 화면</title>
         <link type="text/css" rel="stylesheet" href="css/main_style.css" />
+        <script>
+            function addRecipient(email) {
+                const toField = document.getElementsByName('to')[0];
+                if (toField.value) {
+                    toField.value += ", " + email;
+                } else {
+                    toField.value = email;
+                }
+            }
+        </script>
     </head>
     <body>
         <%@include file="../header.jspf"%>
@@ -23,54 +33,80 @@
             <jsp:include page="../sidebar_previous_menu.jsp" />
         </div>
 
-        <div id="main">
-            <%-- <jsp:include page="mail_send_form.jsp" /> --%>
-            <form enctype="multipart/form-data" method="POST" action="write_mail.do" >
-                <table>
-                    <tr>
-                        <td> 수신 </td>
-                        <td> <input type="text" name="to" size="80"
-                                    value="${!empty param['sender'] ? param['sender'] : ''}"
-            <!--    value=<%=request.getParameter("recv") == null ? "" : request.getParameter("recv")%>  -->
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>참조</td>
-                        <td> <input type="text" name="cc" size="80">  </td>
-                    </tr>
-                    <tr>
-                        <td> 메일 제목 </td>
-                        <td> <input type="text" name="subj" size="80" 
-                                    value="${!empty param['sender'] ? "RE: " += sessionScope['subject'] : ''}" >  </td>
-                    </tr>
-                    <tr>
-                        <td colspan="2">본  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 문</td>
-                    </tr>
-                    <tr>  <%-- TextArea    --%>
-                        <td colspan="2">
-                            <textarea rows="15" name="body" cols="80">${!empty param['sender'] ?
-"
+        <div id="main" style="display: flex;">
+            <div style="flex: 3; margin-right: 20px;">
+                <%-- <jsp:include page="mail_send_form.jsp" /> --%>
+                <form enctype="multipart/form-data" method="POST" action="write_mail.do" >
+                    <table>
+                        <tr>
+                            <td> 수신 </td>
+                            <td> <input type="text" id="toField" name="to" size="80"
+                                        value="${!empty param['sender'] ? param['sender'] : ''}"
+                                        <!--    value=<%=request.getParameter("recv") == null ? "" : request.getParameter("recv")%>  -->
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>참조</td>
+                            <td> <input type="text" name="cc" size="80">  </td>
+                        </tr>
+                        <tr>
+                            <td> 메일 제목 </td>
+                            <td> <input type="text" name="subj" size="80" 
+                                        value="${!empty param['sender'] ? "RE: " += sessionScope['subject'] : ''}" >  </td>
+                        </tr>
+                        <tr>
+                            <td colspan="2">본  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 문</td>
+                        </tr>
+                        <tr>  <%-- TextArea    --%>
+                            <td colspan="2">
+                                <textarea rows="15" name="body" cols="80">${!empty param['sender'] ?
+                                                                            "
 
 
 
-----
-" += sessionScope['body'] : ''}</textarea> 
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>첨부 파일</td>
-                        <td> <input type="file" name="file1"  size="80">  </td>
-                    </tr>
-                    <tr>
-                        <td colspan="2">
-                            <input type="submit" value="메일 보내기">
-                            <input type="reset" value="다시 입력">
-                        </td>
-                    </tr>
-                </table>
-            </form>
+                                                                            ----
+                                                                            " += sessionScope['body'] : ''}</textarea> 
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>첨부 파일</td>
+                            <td> <input type="file" name="file1"  size="80">  </td>
+                        </tr>
+                        <tr>
+                            <td colspan="2">
+                                <input type="submit" value="메일 보내기">
+                                <input type="reset" value="다시 입력">
+                            </td>
+                        </tr>
+                    </table>
+                </form>
+            </div>
+            <!-- 주소록 표시 -->
+            <div style="flex: 1;">
+                <h3>주소록</h3>
+                <c:forEach var="entry" items="${addrbookList}">
+                    <input type="checkbox" class="addrCheckbox" value="${entry.email}">
+                    ${entry.name} (${entry.email})<br>
+                </c:forEach>
+            </div>
         </div>
 
         <%@include file="../footer.jspf"%>
+
+        <script>
+            const checkboxes = document.querySelectorAll('.addrCheckbox');
+            const toField = document.getElementById('toField');
+
+            checkboxes.forEach(checkbox => {
+                checkbox.addEventListener('change', () => {
+                    const selectedEmails = Array.from(checkboxes)
+                            .filter(cb => cb.checked)
+                            .map(cb => cb.value)
+                            .join(', ');
+
+                    toField.value = selectedEmails;
+                });
+            });
+        </script>
     </body>
 </html>
