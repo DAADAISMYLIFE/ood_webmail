@@ -67,7 +67,7 @@
 2. docker run -d --name mysql-13308 -e MYSQL_ROOT_PASSWORD=1234 -p 13308:3306 -v C:/webmail/addrbook_data:/var/lib/mysql mysql:8
 
 3. DBeaver 사용하여 연결하기
- 
+```bash 
 CREATE DATABASE IF NOT EXISTS webmail DEFAULT CHARACTER SET utf8mb4;
 USE webmail;
 
@@ -82,7 +82,7 @@ CREATE TABLE addrbook (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 select * from addrbook;
-
+```
 빨간 줄 무시하여도 상관 없음. 
 
 4. docker stop mysql-13308 (도커 컨테이너 중지)
