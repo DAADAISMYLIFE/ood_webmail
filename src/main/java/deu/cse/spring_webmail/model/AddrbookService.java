@@ -7,11 +7,13 @@ package deu.cse.spring_webmail.model;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  *
  * @author keyrb
  */
+@Slf4j
 public class AddrbookService {
 
     // DB 연결 정보
@@ -39,7 +41,7 @@ public class AddrbookService {
             }
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            log.error("주소록 처리 중 오류 발생", e);
         }
 
         return list;
@@ -61,7 +63,7 @@ public class AddrbookService {
             return true;
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            log.error("주소록 처리 중 오류 발생", e);
             return false;
         }
     }
@@ -79,8 +81,38 @@ public class AddrbookService {
             return affectedRows > 0;
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            log.error("주소록 처리 중 오류 발생", e);
             return false;
         }
     }
+
+    // 주소록 검색
+    public List<Addrbook> searchAddrbookList(String user, String keyword) {
+        List<Addrbook> list = new ArrayList<>();
+        String sql = "SELECT email, name, phone FROM addrbook WHERE user = ? AND (email LIKE ? OR name LIKE ?)";
+
+        try (Connection conn = DriverManager.getConnection(URL, USER, PASSWORD);
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, user);
+            pstmt.setString(2, "%" + keyword + "%");
+            pstmt.setString(3, "%" + keyword + "%");
+            ResultSet rs = pstmt.executeQuery();
+
+            while (rs.next()) {
+                Addrbook entry = new Addrbook();
+                entry.setEmail(rs.getString("email"));
+                entry.setName(rs.getString("name"));
+                entry.setPhone(rs.getString("phone"));
+                list.add(entry);
+            }
+
+        } catch (SQLException e) {
+            log.error("주소록 처리 중 오류 발생", e);
+        }
+
+        return list;
+    }
+
+
 }

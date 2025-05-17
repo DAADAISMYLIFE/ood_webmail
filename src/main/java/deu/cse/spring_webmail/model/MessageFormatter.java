@@ -88,6 +88,7 @@ public class MessageFormatter {
         buffer.append(parser.getBody());
 
         List<String> attachedFiles = parser.getAttachmentFileNames();
+        log.debug("첨부파일 리스트: {}", attachedFiles);  // 추가
         if (attachedFiles != null) {
             for (String attachedFile : attachedFiles) {
                 buffer.append("<br> <hr> 첨부파일: <a href=download"

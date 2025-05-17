@@ -12,6 +12,7 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.util.LinkedList;
 import java.util.List;
 import javax.imageio.ImageIO;
 import jakarta.servlet.ServletContext;
@@ -73,51 +74,74 @@ public class SystemController {
         return "/index";
     }
 
+    // 도메인 후보 탐색. james 서버에서 사용자 관리를 하기 때문에
+    // 사용자가 로그인을 하면, 아이디와 도메인을 함께 탐색하여 자동 로그인하게 해줌
+    private List<String> getDomainCandidates(String userIdWithoutDomain) {
+        // 관리자 권한으로 사용자 리스트를 가져옴
+        String cwd = ctx.getRealPath(".");
+        UserAdminAgent agent = agentFactory.userAdminAgentCreate(JAMES_HOST, JAMES_CONTROL_PORT, cwd,
+                ROOT_ID, ROOT_PASSWORD, ADMINISTRATOR);
+        List<String> fullUserList = agent.getUserList();
+
+        // 일치하는 아이디를 기반으로 후보 목록 추출
+        List<String> candidates = new LinkedList<>();
+        for (String user : fullUserList) {
+            if (user.startsWith(userIdWithoutDomain + "@")) {
+                candidates.add(user);
+            }
+        }
+        return candidates;
+    }
+
     @RequestMapping(value = "/login.do", method = {RequestMethod.GET, RequestMethod.POST})
-    public String loginDo(@RequestParam Integer menu) {
+    public String loginDo(@RequestParam Integer menu, Model model) {
         String url = "";
         log.debug("로그인 처리: menu = {}", menu);
+
         switch (menu) {
             case CommandType.LOGIN:
                 String host = (String) request.getSession().getAttribute("host");
-                String userid = request.getParameter("userid");
+                String rawUserId = request.getParameter("userid");
                 String password = request.getParameter("passwd");
 
-                // Check the login information is valid using <<model>>Pop3Agent.
-                Pop3Agent pop3Agent = agentFactory.pop3AgentCreate(host, userid, password);
+                // '@' 없는 경우 후보 조회
+                if (!rawUserId.contains("@")) {
+                    List<String> candidates = getDomainCandidates(rawUserId);
+                    if (candidates.size() >= 1) {
+                        rawUserId = candidates.get(0); // 도메인 자동 매칭
+                    }
+                }
 
+                // POP3 인증 시도
+                Pop3Agent pop3Agent = agentFactory.pop3AgentCreate(host, rawUserId, password);
                 boolean isLoginSuccess = pop3Agent.validate();
 
-                // Now call the correct page according to its validation result.
                 if (isLoginSuccess) {
-                    if (isAdmin(userid)) {
-                        // HttpSession 객체에 userid를 등록해 둔다.
-                        session.setAttribute("userid", userid);
-                        // response.sendRedirect("admin_menu.jsp");
+                    session.setAttribute("userid", rawUserId);
+                    session.setAttribute("password", password);
+
+                    if (isAdmin(rawUserId)) {
                         url = "redirect:/admin_menu";
                     } else {
-                        // HttpSession 객체에 userid와 password를 등록해 둔다.
-                        session.setAttribute("userid", userid);
-                        session.setAttribute("password", password);
-                        // response.sendRedirect("main_menu.jsp");
-                        url = "redirect:/main_menu";  // URL이 http://localhost:8080/webmail/main_menu 이와 같이 됨.
-                        // url = "/main_menu";  // URL이 http://localhost:8080/webmail/login.do?menu=91 이와 같이 되어 안 좋음
+                        url = "redirect:/main_menu";
                     }
                 } else {
-                    // RequestDispatcher view = request.getRequestDispatcher("login_fail.jsp");
-                    // view.forward(request, response);
                     url = "redirect:/login_fail";
                 }
                 break;
+
             case CommandType.LOGOUT:
                 session.invalidate();
-                url = "redirect:/";  // redirect: 반드시 넣어야만 컨텍스트 루트로 갈 수 있음
+                url = "redirect:/";
                 break;
+
             default:
                 break;
         }
+
         return url;
     }
+
 
     @GetMapping("/login_fail")
     public String loginFail() {
@@ -134,23 +158,22 @@ public class SystemController {
         return status;
     }
 
-    // 현재 이 메소드에서 페이지 처리, 정렬 기능 없이 모든 메일을 한번에 불러옴
-    // MailController에서 정렬, 페이징 적용 메일 목록을 MailListService로 처리하도록 수정하였음
-    // 따라서 주석 처리함. 
-//    @GetMapping("/main_menu")
-//    public String mainMenu(Model model) {
-//        Pop3Agent pop3 = new Pop3Agent();
-//        pop3.setHost((String) session.getAttribute("host"));
-//        pop3.setUserid((String) session.getAttribute("userid"));
-//        pop3.setPassword((String) session.getAttribute("password"));
-//
-//        String messageList = pop3.getMessageList();
-//        model.addAttribute("messageList", messageList);
-//        return "main_menu";
-//    }
     // TODO : 인증없이 일반 유저도 어드민 페이지 와짐. 어드민 인증 로직 추가할 것
     @GetMapping("/admin_menu")
     public String adminMenu(Model model) {
+        String sessionUserid = (String) session.getAttribute("userid");
+
+        // 비로그인 차단
+        if (sessionUserid == null) {
+            return "redirect:/login_fail";
+        }
+
+        // 비관리자 차단
+        if (!isAdmin(sessionUserid)) {
+            return "redirect:/login_fail";
+        }
+
+        // 관리자만 로그인
         log.debug("root.id = {}, root.password = {}, admin.id = {}",
                 ROOT_ID, ROOT_PASSWORD, ADMINISTRATOR);
 

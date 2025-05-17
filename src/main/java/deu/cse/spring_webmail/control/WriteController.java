@@ -40,14 +40,23 @@ public class WriteController {
     /**
      * 주소록 조회
      */
+
     @GetMapping("/addrbook/list")
-    public String listAddrbook(HttpSession session, Model model) {
+    public String listAddrbook(@RequestParam(required = false) String keyword,
+                               HttpSession session,
+                               Model model) {
         String user = (String) session.getAttribute("userid");
         AddrbookService service = new AddrbookService();
-        List<Addrbook> addrbookList = service.getAddrbookList(user);
+
+        List<Addrbook> addrbookList = (keyword == null || keyword.isBlank())
+                ? service.getAddrbookList(user)
+                : service.searchAddrbookList(user, keyword);
+
         model.addAttribute("addrbookList", addrbookList);
+        model.addAttribute("keyword", keyword);
         return "addrbook/list";
     }
+
 
     /**
      * 주소록 등록 페이지 이동
@@ -103,14 +112,19 @@ public class WriteController {
      * 메일 작성 화면 + 주소록 데이터 제공
      */
     @GetMapping("/write_mail")
-    public String writeMail(Model model, HttpSession session) {
+    public String writeMail(@RequestParam(required = false) String keyword,
+                            Model model, HttpSession session) {
         log.debug("write_mail called...");
         session.removeAttribute("sender");
 
         String user = (String) session.getAttribute("userid");
         AddrbookService service = new AddrbookService();
-        List<Addrbook> addrbookList = service.getAddrbookList(user);
+        List<Addrbook> addrbookList = (keyword == null || keyword.isBlank())
+                ? service.getAddrbookList(user)
+                : service.searchAddrbookList(user, keyword);
+
         model.addAttribute("addrbookList", addrbookList);
+        model.addAttribute("keyword", keyword);
 
         return "write_mail/write_mail";
     }
@@ -135,7 +149,18 @@ public class WriteController {
         // 업로드한 파일이 있으면 해당 파일을 UPLOAD_FOLDER에 저장해 주면 됨.
         for (MultipartFile upFile : upFiles) {
             if (!"".equals(upFile.getOriginalFilename())) {
-                String basePath = ctx.getRealPath(UPLOAD_FOLDER);
+                // basePath에 사용자 ID 경로를 추가
+                String userid = (String) session.getAttribute("userid");
+                // String basePath = ctx.getRealPath(UPLOAD_FOLDER);
+                String basePath = ctx.getRealPath("/WEB-INF/download") + File.separator + userid;
+
+                // 추가한 부분(메일 읽기 경로가 바뀌면서 업로드 경로에 userid 추가함)
+                // 사용자별 폴더 생성
+                File userDir = new File(basePath);
+                if (!userDir.exists()) {
+                    userDir.mkdirs();
+                }
+
                 log.debug("{} 파일을 {} 폴더에 저장...", upFile.getOriginalFilename(), basePath);
                 File f = new File(basePath + File.separator + upFile.getOriginalFilename());
                 try (BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(f))) {
@@ -189,7 +214,8 @@ public class WriteController {
             String fileName = upFile.getOriginalFilename();
             if (fileName != null && !"".equals(fileName)) {
                 log.debug("sendMessage: 파일({}) 첨부 필요", fileName);
-                File f = new File(ctx.getRealPath(UPLOAD_FOLDER) + File.separator + fileName);
+                File f = new File(ctx.getRealPath("/WEB-INF/download") + File.separator + userid + File.separator + fileName);
+                // File f = new File(ctx.getRealPath(UPLOAD_FOLDER) + File.separator + fileName);
                 agent.addAttachment(f.getAbsolutePath());
             }
         }

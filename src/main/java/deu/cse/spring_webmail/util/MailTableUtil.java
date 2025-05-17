@@ -47,7 +47,7 @@ public class MailTableUtil {
                 sb.append(String.format("<td>%d</td>", msgNo));
                 sb.append(String.format("<td>%s</td>", from));
                 sb.append(String.format(
-                        "<td><a href='show_message?id=%s'>%s</a></td>",
+                        "<td id='subject'><a href='select_message?id=%s'>%s</a></td>",
                         messageId, subject));
                 sb.append(String.format("<td>%s</td>", date));
                 sb.append(String.format(
