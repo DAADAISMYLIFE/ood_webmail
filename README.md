@@ -1,4 +1,4 @@
-# 객체지향설계 웹메일 프로젝트
+# 객체지향설계 웹메일 프로젝트 (5/18 수정)
 
 ## 프로젝트 소개
 
@@ -61,9 +61,53 @@
 
 3.  **실행:** 프로젝트 오른쪽 클릭 후 `Run Maven -> Other Goals...` 클릭 후 `spring-boot:run`으로 실행
 
+## DB 환경 설정
+1. docker rm -f mysql-13308
+
+2. docker run -d --name mysql-13308 -e MYSQL_ROOT_PASSWORD=1234 -p 13308:3306 -v C:/webmail/addrbook_data:/var/lib/mysql mysql:8
+
+3. DBeaver 사용하여 연결하기
+ 
+CREATE DATABASE IF NOT EXISTS webmail DEFAULT CHARACTER SET utf8mb4;
+USE webmail;
+
+DROP TABLE IF EXISTS `addrbook`;
+
+CREATE TABLE addrbook (
+  user VARCHAR(50) NOT NULL,
+  email VARCHAR(50) NOT NULL,
+  name VARCHAR(20) NOT NULL,
+  phone VARCHAR(15),
+  PRIMARY KEY (user, email)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+select * from addrbook;
+
+빨간 줄 무시하여도 상관 없음. 
+
+4. docker stop mysql-13308 (도커 컨테이너 중지)
+
+5. docker start mysql-13308 (도커 컨테이너 실행)
+
+6. DB 선언 후 확인 
+USE webmail;
+SELECT * FROM addrbook;
+
+7. 왼쪽 DB파일 webmail 우클릭 -> Edit Connection 들어가서 Database에  webmail 입력하여 수정 및 완료
+
+## 추가한 기능(확인하였다면 README에서 삭제 요청)
+- 주소록 검색
+- select_message 추가하여 메일 확인 시 url에 message_id 경로 보이지 않도록 변경
+- 이로 인한 다중 파일 업로드/다운로드 경로가 꼬여버려 일일히 경로를 수정 및 smtpAgent의 sendMessage 로직 일부 수정
+- 아이디 입력 시 서버에서 자동으로 도메인 매핑하여 로그인 시도
+- 관리자 계정 외 사용자, url경로로 인한 관리자 메뉴 진입 차단
+- write_mail.jsp에서 삼항연산자를 사용하여 작동은 되나 문법적 오류가 발생하던 부분 수정(코드 스멜 제거)
+
 ## 팀원
 
 *   20212975 김민선
 *   20183136 박경민
 *   20203161 강순우
 *   20212966 박소현
+
+
