@@ -89,11 +89,13 @@ select * from addrbook;
 
 5. docker start mysql-13308 (도커 컨테이너 실행)
 
-6. DB 선언 후 확인 
+6. DB 선언 후 확인
+```bash
 USE webmail;
 SELECT * FROM addrbook;
+```
 
-7. 왼쪽 DB파일 webmail 우클릭 -> Edit Connection 들어가서 Database에  webmail 입력하여 수정 및 완료
+8. 왼쪽 DB파일 webmail 우클릭 -> Edit Connection 들어가서 Database에  webmail 입력하여 수정 및 완료
 
 ## 추가한 기능(확인하였다면 README에서 삭제 요청)
 - 주소록 검색
