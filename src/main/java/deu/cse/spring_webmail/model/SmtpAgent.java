@@ -67,13 +67,6 @@ public class SmtpAgent {
         }
     }
 
-    // 첨부파일 추가 메서드
-    public void addAttachment(String filePath) {
-        if (filePath != null && !filePath.trim().isEmpty()) {
-            attachments.add(filePath);
-        }
-    }
-
     // LJM 100418 -  현재 로그인한 사용자의 이메일 주소를 반영하도록 수정되어야 함. - test only
     // LJM 100419 - 일반 웹 서버와의 SMTP 동작시 setFrom() 함수 사용 필요함.
     //              없을 경우 메일 전송이 송신주소가 없어서 걸러짐.
@@ -96,7 +89,6 @@ public class SmtpAgent {
             // msg.setFrom(new InternetAddress(this.userid + "@" + this.host));
             msg.setFrom(new InternetAddress(this.userid));  // 200102 LJM - 테스트 목적으로 수정
             //msg.setFrom(new InternetAddress("jongmin@deu.ac.kr"));
-
 
             // setRecipient() can be called repeatedly if ';' or ',' exists
             if (this.to.indexOf(';') != -1) {
@@ -144,10 +136,8 @@ public class SmtpAgent {
 //                mp.addBodyPart(a1);
 //            }
 //            msg.setContent(mp);
-
             // 기존: 단일 첨부만 처리
             // if (this.file1 != null) { ... }
-
             // 변경: 다중 첨부 처리
             if (!attachments.isEmpty()) {
                 for (String filePath : attachments) {
@@ -176,7 +166,7 @@ public class SmtpAgent {
                     log.error(filePath + ": 파일 삭제가 제대로 안 됨.");
                 }
             }
-            
+
             status = true;
         } catch (Exception ex) {
             log.error("sendMessage() error: {}", ex);
