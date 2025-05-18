@@ -107,7 +107,7 @@ public class SystemController {
         switch (menu) {
             case CommandType.LOGIN:
                 String host = (String) request.getSession().getAttribute("host");
-                String userid = request.getParameter(userIdParam);
+                String rawUserId = request.getParameter("userid");
                 String password = request.getParameter("passwd");
 
                 // '@' 없는 경우 후보 조회

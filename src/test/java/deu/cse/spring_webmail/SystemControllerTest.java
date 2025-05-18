@@ -61,7 +61,7 @@ class SystemControllerTest {
     @Test
     void loginAdminSuccessTest() throws Exception {
         String testUserid = "admin@webmail.com";
-        String testPassword = "admin_password";
+        String testPassword = "admin";
         String testHost = "test.webmail.com";
         
         Pop3Agent mockPop3Agent = Mockito.mock(Pop3Agent.class);
