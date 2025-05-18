@@ -4,6 +4,7 @@
  */
 package deu.cse.spring_webmail.control;
 
+import deu.cse.spring_webmail.model.AgentFactory;
 import deu.cse.spring_webmail.model.MessageFormatter;
 import deu.cse.spring_webmail.model.Pop3Agent;
 import jakarta.mail.Message;
@@ -49,46 +50,49 @@ public class ReadController {
     private HttpSession session;
     @Autowired
     private HttpServletRequest request;
+
+    private final AgentFactory agentFactory;
+
     @Value("${file.download_folder}")
     private String DOWNLOAD_FOLDER;
 
-//    @GetMapping("/show_message")
-//    public String showMessage(@RequestParam Integer msgid, Model model) {
-//        log.debug("download_folder = {}", DOWNLOAD_FOLDER);
-//        
-//        Pop3Agent pop3 = new Pop3Agent();
-//        pop3.setHost((String) session.getAttribute("host"));
-//        pop3.setUserid((String) session.getAttribute("userid"));
-//        pop3.setPassword((String) session.getAttribute("password"));
-//        pop3.setRequest(request);
-//        
-//        String msg = pop3.getMessage(msgid);
-//        session.setAttribute("sender", pop3.getSender());  // 220612 LJM - added
-//        session.setAttribute("subject", pop3.getSubject());
-//        session.setAttribute("body", pop3.getBody());
-//        model.addAttribute("msg", msg);
-//        return "/read_mail/show_message";
-//    }
+    @Autowired
+    public ReadController(AgentFactory agentFactory) {
+        this.agentFactory = agentFactory;
+    }
+
+    // show_message 에서 url 경로를 안보이게 설정하기 위해
+    // messageId값 받는 부분 따로 만듬
+    @GetMapping("/select_message")
+    public String selectMessage(@RequestParam String id) {
+        session.setAttribute("selectedMessageId", id);
+        return "redirect:/show_message";
+    }
+
+
     // 기존 메서드 주석 처리함. 메일 테이블 생성 시
     // message-id 포함 링크로 변경하였음
+    // url 안보이게 처리
     @GetMapping("/show_message")
-    public String showMessageById(@RequestParam String id, Model model) {
+    public String showMessageById(Model model) {
+        String id = (String) session.getAttribute("selectedMessageId");
+        if (id == null || id.isBlank()) {
+            model.addAttribute("msg", "잘못된 접근입니다. 메일이 선택되지 않았습니다.");
+            return "/read_mail/show_message";
+        }
+
         String host = (String) session.getAttribute("host");
         String userid = (String) session.getAttribute("userid");
         String password = (String) session.getAttribute("password");
 
-        Pop3Agent agent = new Pop3Agent(host, userid, password);
+        Pop3Agent agent = agentFactory.pop3AgentCreate(host, userid, password);
         Message[] messages = agent.getMessages();
 
         for (Message msg : messages) {
             try {
                 String[] headers = msg.getHeader("Message-ID");
                 if (headers != null && headers.length > 0) {
-                    String messageIdHeader = headers[0];
-                    messageIdHeader = messageIdHeader.trim();
-                    if (messageIdHeader.startsWith("<") && messageIdHeader.endsWith(">")) {
-                        messageIdHeader = messageIdHeader.substring(1, messageIdHeader.length() - 1);
-                    }
+                    String messageIdHeader = headers[0].replaceAll("[<>]", "");
                     if (messageIdHeader.equals(id)) {
                         MessageFormatter formatter = new MessageFormatter(userid);
                         formatter.setRequest(request);
@@ -101,7 +105,7 @@ public class ReadController {
                     }
                 }
             } catch (Exception e) {
-                e.printStackTrace();
+                log.error("오류 발생", e);
             }
         }
         model.addAttribute("msg", "해당 메일을 찾을 수 없습니다.");
@@ -112,11 +116,6 @@ public class ReadController {
     public ResponseEntity<Resource> download(@RequestParam("userid") String userId,
             @RequestParam("filename") String fileName) {
         log.debug("userid = {}, filename = {}", userId, fileName);
-        try {
-            log.debug("userid = {}, filename = {}", userId, MimeUtility.decodeText(fileName));
-        } catch (UnsupportedEncodingException ex) {
-            log.error("error");
-        }
 
         // 1. 내려받기할 파일의 기본 경로 설정
         String basePath = ctx.getRealPath(DOWNLOAD_FOLDER) + File.separator + userId;
@@ -135,6 +134,11 @@ public class ReadController {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentDisposition(
                 ContentDisposition.builder("attachment").filename(fileName, StandardCharsets.UTF_8).build());
+
+        // ContentType 이 null 일 경우, 기본값 지정 (추가)
+        if (contentType == null) {
+            contentType = "application/octet-stream";
+        }
         headers.add(HttpHeaders.CONTENT_TYPE, contentType);
 
         // 4. 파일을 입력 스트림으로 만들어 내려받기 준비
@@ -145,6 +149,7 @@ public class ReadController {
             log.error("downloadDo: 오류 발생 - {}", e.getMessage());
         }
         if (resource == null) {
+            log.error("요청한 파일이 존재하지 않음: {}", path.toString());
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
 
@@ -159,15 +164,7 @@ public class ReadController {
         String host = (String) session.getAttribute("host");
         String userid = (String) session.getAttribute("userid");
         String password = (String) session.getAttribute("password");
-
-        // Pop3Agent pop3 = new Pop3Agent(host, userid, password);
-        // boolean deleteSuccessful = pop3.deleteMessage(msgId, true);
-        // if (deleteSuccessful) {
-//            attrs.addFlashAttribute("msg", "메시지 삭제를 성공하였습니다.");
-//        } else {
-//            attrs.addFlashAttribute("msg", "메시지 삭제를 실패하였습니다.");
-//        }
-        Pop3Agent agent = new Pop3Agent(host, userid, password);
+        Pop3Agent agent = agentFactory.pop3AgentCreate(host, userid, password);
         Message[] messages = agent.getMessages();
 
         boolean found = false;
@@ -184,7 +181,7 @@ public class ReadController {
                     }
                 }
             } catch (Exception e) {
-                e.printStackTrace();
+                log.error("오류 발생", e);
             }
         }
 

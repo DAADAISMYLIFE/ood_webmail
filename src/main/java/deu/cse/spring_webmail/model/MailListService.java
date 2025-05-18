@@ -5,12 +5,7 @@
 package deu.cse.spring_webmail.model;
 
 import deu.cse.spring_webmail.util.MailTableUtil;
-import jakarta.mail.Address;
 import jakarta.mail.Message;
-import jakarta.mail.MessagingException;
-import jakarta.mail.internet.InternetAddress;
-
-import java.text.SimpleDateFormat;
 import java.util.*;
 
 /**

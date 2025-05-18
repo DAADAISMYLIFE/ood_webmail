@@ -6,10 +6,14 @@ package deu.cse.spring_webmail.model;
 
 import jakarta.mail.Message;
 import jakarta.servlet.http.HttpServletRequest;
+import java.util.List;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import jakarta.mail.MessagingException;
 
 /**
  *
@@ -39,7 +43,7 @@ public class MessageFormatter {
                 + " <th> 보낸 날짜 </td>   "
                 + " <th> 삭제 </td>   "
                 + " </tr>");
-
+        
         for (int i = messages.length - 1; i >= 0; i--) {
             MessageParser parser = new MessageParser(messages[i], userid);
             parser.parse(false);  // envelope 정보만 필요
@@ -61,6 +65,7 @@ public class MessageFormatter {
 
         return buffer.toString();
 //        return "MessageFormatter 테이블 결과";
+        
     }
 
     public String getMessage(Message message) {
@@ -82,17 +87,20 @@ public class MessageFormatter {
 
         buffer.append(parser.getBody());
 
-        String attachedFile = parser.getFileName();
-        if (attachedFile != null) {
-            buffer.append("<br> <hr> 첨부파일: <a href=download"
-                    + "?userid=" + this.userid
-                    + "&filename=" + attachedFile.replaceAll(" ", "%20")
-                    + " target=_top> " + attachedFile + "</a> <br>");
+        List<String> attachedFiles = parser.getAttachmentFileNames();
+        log.debug("첨부파일 리스트: {}", attachedFiles);  // 추가
+        if (attachedFiles != null) {
+            for (String attachedFile : attachedFiles) {
+                buffer.append("<br> <hr> 첨부파일: <a href=download"
+                        + "?userid=" + this.userid
+                        + "&filename=" + attachedFile.replaceAll(" ", "%20")
+                        + " target=_top> " + attachedFile + "</a> <br>");
+            }
         }
 
         return buffer.toString();
     }
-    
+
     public void setRequest(HttpServletRequest request) {
         this.request = request;
     }

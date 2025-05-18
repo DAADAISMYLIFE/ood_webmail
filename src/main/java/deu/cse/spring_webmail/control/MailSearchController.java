@@ -4,6 +4,7 @@
  */
 package deu.cse.spring_webmail.control;
 
+import deu.cse.spring_webmail.model.AgentFactory;
 import deu.cse.spring_webmail.model.MailSearchService;
 import deu.cse.spring_webmail.model.Pop3Agent;
 import jakarta.mail.Message;
@@ -21,11 +22,15 @@ import org.springframework.web.bind.annotation.RequestParam;
 @Controller
 public class MailSearchController {
 
+    private final AgentFactory agentFactory;
+    
     @Autowired
-    private HttpSession session;
+    public MailSearchController(AgentFactory agentFactory){
+        this.agentFactory = agentFactory;
+    }
 
     @PostMapping("/search_mail")
-    public String searchMail(@RequestParam("keyword") String keyword,
+    public String searchMail(HttpSession session, @RequestParam("keyword") String keyword,
             @RequestParam(value = "sort", defaultValue = "desc") String sort,
             @RequestParam(value = "page", defaultValue = "1") int page,
             Model model) {
@@ -33,7 +38,7 @@ public class MailSearchController {
         String userid = (String) session.getAttribute("userid");
         String password = (String) session.getAttribute("password");
 
-        Pop3Agent agent = new Pop3Agent(host, userid, password);
+        Pop3Agent agent = agentFactory.pop3AgentCreate(host, userid, password);
         Message[] messages = agent.getMessages();
 
         int pageSize = 10;
@@ -43,7 +48,7 @@ public class MailSearchController {
 
         model.addAttribute("messageList", result);
         model.addAttribute("totalPages", totalPages);
-        
+
         return "main_menu";  // main_menu.jsp로 반환
     }
 }
