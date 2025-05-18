@@ -107,70 +107,7 @@ public class Pop3Agent {
     /*
      * 페이지 단위로 메일 목록을 보여주어야 함.
      */
-//    public String getMessageList() {
-//        String result = "";
-//        Message[] messages = null;
-//
-//        if (!connectToStore()) {  // 3.1
-//            log.error("POP3 connection failed!");
-//            return "POP3 연결이 되지 않아 메일 목록을 볼 수 없습니다.";
-//        }
-//
-//        try {
-//            // 메일 폴더 열기
-//            Folder folder = store.getFolder("INBOX");  // 3.2
-//            folder.open(Folder.READ_ONLY);  // 3.3
-//
-//            // 현재 수신한 메시지 모두 가져오기
-//            messages = folder.getMessages();      // 3.4
-//            FetchProfile fp = new FetchProfile();
-//            // From, To, Cc, Bcc, ReplyTo, Subject & Date
-//            fp.add(FetchProfile.Item.ENVELOPE);
-//            folder.fetch(messages, fp);
-//
-//            MessageFormatter formatter = new MessageFormatter(userid);  //3.5
-//            result = formatter.getMessageTable(messages);   // 3.6
-//
-//            folder.close(true);  // 3.7
-//            store.close();       // 3.8
-//        } catch (Exception ex) {
-//            log.error("Pop3Agent.getMessageList() : exception = {}", ex.getMessage());
-//            result = "Pop3Agent.getMessageList() : exception = " + ex.getMessage();
-//        } finally {
-//            return result;
-//        }
-//    }
-//
-//    public String getMessage(int n) {
-//        String result = "POP3  서버 연결이 되지 않아 메시지를 볼 수 없습니다.";
-//
-//        if (!connectToStore()) {
-//            log.error("POP3 connection failed!");
-//            return result;
-//        }
-//
-//        try {
-//            Folder folder = store.getFolder("INBOX");
-//            folder.open(Folder.READ_ONLY);
-//
-//            Message message = folder.getMessage(n);
-//
-//            MessageFormatter formatter = new MessageFormatter(userid);
-//            formatter.setRequest(request);  // 210308 LJM - added
-//            result = formatter.getMessage(message);
-//            sender = formatter.getSender();  // 220612 LJM - added
-//            subject = formatter.getSubject();
-//            body = formatter.getBody();
-//
-//            folder.close(true);
-//            store.close();
-//        } catch (Exception ex) {
-//            log.error("Pop3Agent.getMessageList() : exception = {}", ex);
-//            result = "Pop3Agent.getMessage() : exception = " + ex;
-//        } finally {
-//            return result;
-//        }
-//    }
+    
     // getMessage 메소드 수정 (페이징 기능) 
     public String getMessage(int msgid) {
         String result = "POP3 서버 연결이 되지 않아 메시지를 볼 수 없습니다.";
@@ -328,9 +265,6 @@ public class Pop3Agent {
             FetchProfile profile = new FetchProfile();
             profile.add(FetchProfile.Item.ENVELOPE);
             folder.fetch(messages, profile);
-
-            // folder.close(false);
-            // store.close();
             return messages;
         } catch (Exception ex) {
             log.error("getMessages() 예외: {}", ex.getMessage());

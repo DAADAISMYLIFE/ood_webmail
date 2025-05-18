@@ -32,13 +32,22 @@ public class WriteController {
     @Value("${file.upload_folder}")
     private String UPLOAD_FOLDER;
 
+    @Value("${file.max_size}")
+    private String MAX_SIZE;
+
     @Autowired
     private ServletContext ctx;
 
     @Autowired
     private HttpSession session;
+
+    private final AgentFactory agentFactory;
+
     @Autowired
-    private AgentFactory agentFactory;
+    public WriteController(AgentFactory agentFactory) {
+        this.agentFactory = agentFactory;
+    }
+
     /**
      * 주소록 조회
      */
@@ -147,7 +156,7 @@ public class WriteController {
         if (subj == null || subj.trim().isEmpty()) {
             subj = "제목 없음";
         }
-        
+
         // FormParser 클래스의 기능은 매개변수로 모두 넘어오므로 더이상 필요 없음.
         // 업로드한 파일이 있으면 해당 파일을 UPLOAD_FOLDER에 저장해 주면 됨.
         for (MultipartFile upFile : upFiles) {
@@ -174,9 +183,9 @@ public class WriteController {
                 }
             }
         }
-        
+
         boolean sendSuccessful = sendMessage(to, cc, subj, body, upFiles);
-        
+
         if (sendSuccessful) {
             attrs.addFlashAttribute("msg", "메일 전송이 성공했습니다.");
         } else {
@@ -187,9 +196,9 @@ public class WriteController {
     }
 
     /**
-     * FormParser 클래스를 사용하지 않고 Spring Framework에서 이미 획득한 매개변수 정보를 사용하도록
-     * 기존 webmail 소스 코드를 수정함.
-     * 
+     * FormParser 클래스를 사용하지 않고 Spring Framework에서 이미 획득한 매개변수 정보를 사용하도록 기존
+     * webmail 소스 코드를 수정함.
+     *
      * @param to
      * @param cc
      * @param subject
@@ -213,7 +222,7 @@ public class WriteController {
         agent.setCc(cc);
         agent.setSubj(subject);
         agent.setBody(body);
-        
+
         for (MultipartFile upFile : upFiles) {
             String fileName = upFile.getOriginalFilename();
             if (fileName != null && !"".equals(fileName)) {
@@ -231,4 +240,3 @@ public class WriteController {
         return status;
     }  // sendMessage()
 }
-

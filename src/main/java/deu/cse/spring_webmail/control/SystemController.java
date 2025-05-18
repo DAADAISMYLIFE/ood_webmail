@@ -49,10 +49,9 @@ public class SystemController {
     private HttpSession session;
     @Autowired
     private HttpServletRequest request;
-    @Autowired
-    private AgentFactory agentFactory;
-    @Autowired
-    private ImageManager imageManager;
+
+    private final ImageManager imageManager;
+    private final AgentFactory agentFactory;
 
     @Value("${root.id}")
     private String ROOT_ID;
@@ -64,6 +63,12 @@ public class SystemController {
     private Integer JAMES_CONTROL_PORT;
     @Value("${james.host}")
     private String JAMES_HOST;
+
+    @Autowired
+    public SystemController(AgentFactory agentFactory, ImageManager imageManager) {
+        this.imageManager = imageManager;
+        this.agentFactory = agentFactory;
+    }
 
     @GetMapping("/")
     public String index() {
@@ -96,12 +101,13 @@ public class SystemController {
     @RequestMapping(value = "/login.do", method = {RequestMethod.GET, RequestMethod.POST})
     public String loginDo(@RequestParam Integer menu, Model model) {
         String url = "";
+        String userIdParam = "userid";
         log.debug("로그인 처리: menu = {}", menu);
 
         switch (menu) {
             case CommandType.LOGIN:
                 String host = (String) request.getSession().getAttribute("host");
-                String rawUserId = request.getParameter("userid");
+                String userid = request.getParameter(userIdParam);
                 String password = request.getParameter("passwd");
 
                 // '@' 없는 경우 후보 조회
@@ -119,7 +125,7 @@ public class SystemController {
                 if (isLoginSuccess) {
                     session.setAttribute("userid", rawUserId);
                     session.setAttribute("password", password);
-
+                    
                     if (isAdmin(rawUserId)) {
                         url = "redirect:/admin_menu";
                     } else {
@@ -268,9 +274,7 @@ public class SystemController {
     public byte[] getImage(@PathVariable String imageName) {
         try {
             String folderPath = ctx.getRealPath("/WEB-INF/views/img_test/img");
-            byte[] image = imageManager.getImageBytes(folderPath, imageName);
-            return image;
-
+            return imageManager.getImageBytes(folderPath, imageName);
         } catch (Exception e) {
             log.error("/get_image 예외: {}", e.getMessage());
         }

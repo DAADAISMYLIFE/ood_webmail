@@ -31,7 +31,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.hamcrest.Matchers.containsString;
 
 /**
@@ -39,7 +38,7 @@ import static org.hamcrest.Matchers.containsString;
  * @author qkekd
  */
 @WebMvcTest(ReadController.class)
-public class ReadControllerTest {
+class ReadControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
@@ -54,7 +53,7 @@ public class ReadControllerTest {
     File tempDir;
 
     @Test
-    public void showMessageTest() throws Exception {
+    void showMessageTest() throws Exception {
         String testMessageId = "test-ID";
         String testHost = "test@webmail.com";
         String testUserid = "admin@webmail.com";
@@ -71,9 +70,9 @@ public class ReadControllerTest {
 
         // agentFactory 클래스의 pop3AgentCreate 메서드가 실행될 경우 mockPop3Agent를 리턴함
         BDDMockito.given(agentFactory.pop3AgentCreate(
-                eq(testHost),
-                eq(testUserid),
-                eq(testPassword))
+                testHost,
+                testUserid,
+                testPassword)
         ).willReturn(mockPop3Agent);
 
         mockMvc.perform(MockMvcRequestBuilders.get("/show_message")
@@ -125,7 +124,7 @@ public class ReadControllerTest {
 
         Pop3Agent mockAgent = Mockito.mock(Pop3Agent.class);
         Mockito.when(mockAgent.getMessages()).thenReturn(new Message[]{mockMessage});
-        Mockito.when(mockAgent.deleteMessage(eq(1), eq(true))).thenReturn(true);
+        Mockito.when(mockAgent.deleteMessage(1, true)).thenReturn(true);
 
         Mockito.when(agentFactory.pop3AgentCreate(testHost, testUser, testPass)).thenReturn(mockAgent);
 

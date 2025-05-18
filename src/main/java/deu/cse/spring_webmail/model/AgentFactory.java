@@ -12,7 +12,7 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class AgentFactory {
-
+    
     public Pop3Agent pop3AgentCreate(String host, String userid, String password) {
         return new Pop3Agent(host, userid, password);
     }

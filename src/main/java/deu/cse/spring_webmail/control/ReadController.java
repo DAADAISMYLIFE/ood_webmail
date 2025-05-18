@@ -50,10 +50,16 @@ public class ReadController {
     private HttpSession session;
     @Autowired
     private HttpServletRequest request;
-    @Autowired
-    private AgentFactory agentFactory;
+
+    private final AgentFactory agentFactory;
+
     @Value("${file.download_folder}")
     private String DOWNLOAD_FOLDER;
+
+    @Autowired
+    public ReadController(AgentFactory agentFactory) {
+        this.agentFactory = agentFactory;
+    }
 
     // show_message 에서 url 경로를 안보이게 설정하기 위해
     // messageId값 받는 부분 따로 만듬
@@ -62,6 +68,7 @@ public class ReadController {
         session.setAttribute("selectedMessageId", id);
         return "redirect:/show_message";
     }
+
 
     // 기존 메서드 주석 처리함. 메일 테이블 생성 시
     // message-id 포함 링크로 변경하였음
@@ -157,7 +164,6 @@ public class ReadController {
         String host = (String) session.getAttribute("host");
         String userid = (String) session.getAttribute("userid");
         String password = (String) session.getAttribute("password");
-
         Pop3Agent agent = agentFactory.pop3AgentCreate(host, userid, password);
         Message[] messages = agent.getMessages();
 
