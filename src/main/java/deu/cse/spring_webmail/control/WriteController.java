@@ -1,15 +1,9 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package deu.cse.spring_webmail.control;
 
 import deu.cse.spring_webmail.model.AgentFactory;
+import deu.cse.spring_webmail.model.Addrbook;
+import deu.cse.spring_webmail.model.AddrbookService;
 import deu.cse.spring_webmail.model.SmtpAgent;
-import java.io.BufferedOutputStream;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
 import jakarta.servlet.ServletContext;
 import jakarta.servlet.http.HttpSession;
 import lombok.extern.slf4j.Slf4j;
@@ -17,48 +11,138 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-/**
- * 메일 쓰기를 위한 제어기
- * 
- * @author Prof.Jong Min Lee
- */
+import java.io.BufferedOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.util.List;
+
 @Controller
 @PropertySource("classpath:/system.properties")
 @Slf4j
 public class WriteController {
+
     @Value("${file.upload_folder}")
     private String UPLOAD_FOLDER;
-    @Value("${file.max_size}")
-    private String MAX_SIZE;
-    
+
     @Autowired
     private ServletContext ctx;
+
     @Autowired
     private HttpSession session;
     @Autowired
     private AgentFactory agentFactory;
-    
+    /**
+     * 주소록 조회
+     */
+
+    @GetMapping("/addrbook/list")
+    public String listAddrbook(@RequestParam(required = false) String keyword,
+                               HttpSession session,
+                               Model model) {
+        String user = (String) session.getAttribute("userid");
+        AddrbookService service = new AddrbookService();
+
+        List<Addrbook> addrbookList = (keyword == null || keyword.isBlank())
+                ? service.getAddrbookList(user)
+                : service.searchAddrbookList(user, keyword);
+
+        model.addAttribute("addrbookList", addrbookList);
+        model.addAttribute("keyword", keyword);
+        return "addrbook/list";
+    }
+
+
+    /**
+     * 주소록 등록 페이지 이동
+     */
+    @GetMapping("/addrbook/adduser")
+    public String showAdduserPage() {
+        return "addrbook/adduser";
+    }
+
+    /**
+     * 주소록 등록 처리
+     */
+    @PostMapping("/addrbook/adduser")
+    public String adduserAddrbook(@RequestParam String email,
+                                  @RequestParam String name,
+                                  @RequestParam String phone,
+                                  HttpSession session,
+                                  Model model) {
+        if (email == null || email.trim().isEmpty() || name == null || name.trim().isEmpty()) {
+            model.addAttribute("errorMessage", "이메일과 이름은 필수 입력 항목입니다.");
+            return "addrbook/error";
+        }
+        String user = (String) session.getAttribute("userid");
+        AddrbookService service = new AddrbookService();
+        boolean success = service.registerAddrbook(user, email, name, phone);
+
+        if (success) {
+            return "redirect:/addrbook/list";
+        } else {
+            model.addAttribute("errorMessage", "등록에 실패하였습니다.");
+            return "addrbook/error";
+        }
+    }
+
+    /**
+     * 주소록 삭제
+     */
+    @GetMapping("/addrbook/delete")
+    public String deleteAddrbook(@RequestParam String email, HttpSession session, Model model) {
+        String user = (String) session.getAttribute("userid");
+        AddrbookService service = new AddrbookService();
+        boolean success = service.deleteAddrbook(user, email);
+
+        if (success) {
+            return "redirect:/addrbook/list";
+        } else {
+            model.addAttribute("errorMessage", "삭제에 실패하였습니다.");
+            return "addrbook/error";
+        }
+    }
+
+    /**
+     * 메일 작성 화면 + 주소록 데이터 제공
+     */
     @GetMapping("/write_mail")
-    public String writeMail() {
+    public String writeMail(@RequestParam(required = false) String keyword,
+                            Model model, HttpSession session) {
         log.debug("write_mail called...");
-        session.removeAttribute("sender");  // 220612 LJM - 메일 쓰기 시는 
+        session.removeAttribute("sender");
+
+        String user = (String) session.getAttribute("userid");
+        AddrbookService service = new AddrbookService();
+        List<Addrbook> addrbookList = (keyword == null || keyword.isBlank())
+                ? service.getAddrbookList(user)
+                : service.searchAddrbookList(user, keyword);
+
+        model.addAttribute("addrbookList", addrbookList);
+        model.addAttribute("keyword", keyword);
+
         return "write_mail/write_mail";
     }
-    
+
+    /**
+     * 메일 전송 처리
+     */
     @PostMapping("/write_mail.do")
     public String writeMailDo(@RequestParam String to, @RequestParam String cc, 
                               @RequestParam String subj, @RequestParam String body, 
+
                               @RequestParam(name="file1") MultipartFile[] upFiles,
                               RedirectAttributes attrs) {
         log.debug("write_mail.do: to = {}, cc = {}, subj = {}, body = {}, file1 = {}",
-                to, cc, subj, body, upFiles.length);
-        
+                to, cc, subj, body, upFiles.length); 
+
         //메일 제목이 공란인 경우 제목 없음으로 제목 대체후 하이퍼 링크 생성해 내용확인가능
         if (subj == null || subj.trim().isEmpty()) {
             subj = "제목 없음";
@@ -68,7 +152,19 @@ public class WriteController {
         // 업로드한 파일이 있으면 해당 파일을 UPLOAD_FOLDER에 저장해 주면 됨.
         for (MultipartFile upFile : upFiles) {
             if (!"".equals(upFile.getOriginalFilename())) {
-                String basePath = ctx.getRealPath(UPLOAD_FOLDER);
+
+                // basePath에 사용자 ID 경로를 추가
+                String userid = (String) session.getAttribute("userid");
+                // String basePath = ctx.getRealPath(UPLOAD_FOLDER);
+                String basePath = ctx.getRealPath("/WEB-INF/download") + File.separator + userid;
+
+                // 추가한 부분(메일 읽기 경로가 바뀌면서 업로드 경로에 userid 추가함)
+                // 사용자별 폴더 생성
+                File userDir = new File(basePath);
+                if (!userDir.exists()) {
+                    userDir.mkdirs();
+                }
+
                 log.debug("{} 파일을 {} 폴더에 저장...", upFile.getOriginalFilename(), basePath);
                 File f = new File(basePath + File.separator + upFile.getOriginalFilename());
                 try (BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(f))) {
@@ -86,21 +182,22 @@ public class WriteController {
         } else {
             attrs.addFlashAttribute("msg", "메일 전송이 실패했습니다.");
         }
-        
+
         return "redirect:/main_menu";
     }
-    
+
     /**
      * FormParser 클래스를 사용하지 않고 Spring Framework에서 이미 획득한 매개변수 정보를 사용하도록
      * 기존 webmail 소스 코드를 수정함.
      * 
      * @param to
      * @param cc
-     * @param sub
+     * @param subject
      * @param body
-     * @param upFile
+     * @param upFiles
      * @return 
      */
+
     private boolean sendMessage(String to, String cc, String subject, String body, MultipartFile[] upFiles) {
         boolean status = false;
 
@@ -121,7 +218,9 @@ public class WriteController {
             String fileName = upFile.getOriginalFilename();
             if (fileName != null && !"".equals(fileName)) {
                 log.debug("sendMessage: 파일({}) 첨부 필요", fileName);
-                File f = new File(ctx.getRealPath(UPLOAD_FOLDER) + File.separator + fileName);
+
+                File f = new File(ctx.getRealPath("/WEB-INF/download") + File.separator + userid + File.separator + fileName);
+                // File f = new File(ctx.getRealPath(UPLOAD_FOLDER) + File.separator + fileName);
                 agent.addAttachment(f.getAbsolutePath());
             }
         }
@@ -131,5 +230,5 @@ public class WriteController {
         }
         return status;
     }  // sendMessage()
-
 }
+

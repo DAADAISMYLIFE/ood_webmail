@@ -13,6 +13,9 @@ import jakarta.mail.Part;
 import jakarta.mail.internet.MimeUtility;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.util.ArrayList;
+import java.util.List;
+
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.ArrayList;
 import java.util.List;
@@ -40,16 +43,18 @@ public class MessageParser {
     @Getter @Setter private String fileName;
     @Getter @Setter private String downloadTempDir = "C:/temp/download/";
     private List<String> attachmentFileNames = new ArrayList<>();
-    
+
+
     public List<String> getAttachmentFileNames() {
         return attachmentFileNames;
     }
-    
     public MessageParser(Message message, String userid, HttpServletRequest request) {
         this(message, userid);
         PropertyReader props = new PropertyReader();
         String downloadPath = props.getProperty("file.download_folder");
-        downloadTempDir = request.getServletContext().getRealPath(downloadPath);
+        // downloadTempDir = request.getServletContext().getRealPath(downloadPath);
+        // 사용자 폴더 포함 경로 지정 (수정)
+        downloadTempDir = request.getServletContext().getRealPath(downloadPath) + File.separator + userid;
         File f = new File(downloadTempDir);
         if (!f.exists()) {
             f.mkdir();
@@ -92,6 +97,7 @@ public class MessageParser {
 
     // ref: http://www.oracle.com/technetwork/java/faq-135477.html#readattach
     private void getPart(Part p) throws Exception {
+        log.debug("getPart 호출 - Type: {}, Disposition: {}", p.getContentType(), p.getDisposition());
         String disp = p.getDisposition();
 
         if (disp != null && (disp.equalsIgnoreCase(Part.ATTACHMENT) || disp.equalsIgnoreCase(Part.INLINE))) {  // 첨부 파일
@@ -100,7 +106,8 @@ public class MessageParser {
 
             if (fileName != null) {
                 // 첨부 파일을 서버의 내려받기 임시 저장소에 저장
-                String tempUserDir = this.downloadTempDir + File.separator + this.userid;
+                String tempUserDir = this.downloadTempDir;
+
                 File dir = new File(tempUserDir);
                 if (!dir.exists()) {  // tempUserDir 생성
                     dir.mkdir();

@@ -64,7 +64,6 @@ public class MessageFormatter {
         buffer.append("</table>");
 
         return buffer.toString();
-        
 //        return "MessageFormatter 테이블 결과";
         
     }
@@ -87,20 +86,21 @@ public class MessageFormatter {
         buffer.append("제 &nbsp;&nbsp;&nbsp;  목: " + parser.getSubject() + " <br> <hr>");
 
         buffer.append(parser.getBody());
-        
+
         List<String> attachedFiles = parser.getAttachmentFileNames();
+        log.debug("첨부파일 리스트: {}", attachedFiles);  // 추가
         if (attachedFiles != null) {
             for (String attachedFile : attachedFiles) {
                 buffer.append("<br> <hr> 첨부파일: <a href=download"
-                    + "?userid=" + this.userid
-                    + "&filename=" + attachedFile.replaceAll(" ", "%20")
-                    + " target=_top> " + attachedFile + "</a> <br>");
+                        + "?userid=" + this.userid
+                        + "&filename=" + attachedFile.replaceAll(" ", "%20")
+                        + " target=_top> " + attachedFile + "</a> <br>");
             }
         }
 
         return buffer.toString();
     }
-    
+
     public void setRequest(HttpServletRequest request) {
         this.request = request;
     }
