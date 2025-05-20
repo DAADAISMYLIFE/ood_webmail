@@ -38,6 +38,8 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 @Slf4j
 public class SystemController {
 
+    private static final String UID_SESSION_KEY = "userid"; // 세션에 저장된 사용자 ID 키
+
     @Autowired
     private ServletContext ctx;
     @Autowired
@@ -71,7 +73,28 @@ public class SystemController {
         session.setAttribute("host", JAMES_HOST);
         session.setAttribute("debug", "false");
 
+        String userId = (String) session.getAttribute(UID_SESSION_KEY); // 세션에서 사용자 ID를 가져옴
+
+        if (userId != null && !userId.trim().isEmpty()) {
+            // 이미 로그인된 사용자
+            return moveToMainMenu(userId);
+        }
+        // 로그인되지 않았다면 기존처럼 로그인 페이지로
+        log.debug("No user logged in. Showing index page.");
         return "/index";
+    }
+
+    // 유저/어드민 메인 페이지 이동 메서드
+    private String moveToMainMenu(String rawUserId) {
+        String url = "redirect:/main_menu";
+        if (isAdmin(rawUserId)) {
+            url = "redirect:/admin_menu";
+            log.debug("ADMIN user ({}) 로그인 중. /admin_menu로 리다이렉트 합니다. ", rawUserId);
+        } else {
+            log.debug("User ({}) 로그인 중. /main_menu로 리다이렉트 합니다. ", rawUserId);
+
+        }
+        return url;
     }
 
     // 도메인 후보 탐색. james 서버에서 사용자 관리를 하기 때문에
@@ -96,13 +119,12 @@ public class SystemController {
     @RequestMapping(value = "/login.do", method = {RequestMethod.GET, RequestMethod.POST})
     public String loginDo(@RequestParam Integer menu, Model model) {
         String url = "";
-        String userIdParam = "userid";
         log.debug("로그인 처리: menu = {}", menu);
 
         switch (menu) {
             case CommandType.LOGIN:
                 String host = (String) request.getSession().getAttribute("host");
-                String rawUserId = request.getParameter(userIdParam);
+                String rawUserId = request.getParameter(UID_SESSION_KEY);
                 String password = request.getParameter("passwd");
 
                 // '@' 없는 경우 후보 조회
@@ -118,14 +140,10 @@ public class SystemController {
                 boolean isLoginSuccess = pop3Agent.validate();
 
                 if (isLoginSuccess) {
-                    session.setAttribute(userIdParam, rawUserId);
+                    session.setAttribute(UID_SESSION_KEY, rawUserId);
                     session.setAttribute("password", password);
 
-                    if (isAdmin(rawUserId)) {
-                        url = "redirect:/admin_menu";
-                    } else {
-                        url = "redirect:/main_menu";
-                    }
+                    url = moveToMainMenu(rawUserId);
                 } else {
                     url = "redirect:/login_fail";
                 }
@@ -160,7 +178,7 @@ public class SystemController {
 
     @GetMapping("/admin_menu")
     public String adminMenu(Model model) {
-        String sessionUserid = (String) session.getAttribute("userid");
+        String sessionUserid = (String) session.getAttribute(UID_SESSION_KEY);
 
         // 비로그인 차단 및 비관리자 차단
         if (sessionUserid == null || !isAdmin(sessionUserid)) {
@@ -231,7 +249,7 @@ public class SystemController {
             log.error("delete_user.do : 예외 = {}", ex);
         }
 
-        return "redirect:/admin_menu";
+        return "redirect:/";
     }
 
     private List<String> getUserList() {

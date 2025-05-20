@@ -393,7 +393,7 @@ class SystemControllerTest {
                 .param("selectedUsers", testUserids)
         )
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("/admin_menu"));
+                .andExpect(redirectedUrl("/"));
     }
 
     // 이미지 업로드
