@@ -2,7 +2,7 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
  */
-package deu.cse.spring_webmail.model;
+package deu.cse.spring_webmail.service;
 
 import deu.cse.spring_webmail.util.MailTableUtil;
 import jakarta.mail.Message;
@@ -10,15 +10,17 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * 메일 제목 또는 발신자 검색 기능 담당 서비스 클래스 검색 결과 페이징도 같이 담당
  *
  * @author keyrb
  */
+@Slf4j
 public class MailSearchService {
 
-    private final String userid;
+    final String userid;
     private int totalPages;
 
     public MailSearchService(String userid) {
@@ -43,7 +45,7 @@ public class MailSearchService {
                     filteredList.add(message);
                 }
             } catch (Exception e) {
-                e.printStackTrace();
+                log.error("오류 발생", e);
             }
         }
 
@@ -73,7 +75,7 @@ public class MailSearchService {
         int end = Math.min(start + pageSize, filteredList.size());
         List<Message> pagedList = filteredList.subList(start, end);
 
-        return MailTableUtil.buildMessageTable(pagedList, userid);
+        return MailTableUtil.buildMessageTable(pagedList);
     }
 
 }

@@ -2,7 +2,7 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
  */
-package deu.cse.spring_webmail;
+package deu.cse.spring_webmail.ControllerTest;
 
 import deu.cse.spring_webmail.control.SystemController;
 import deu.cse.spring_webmail.model.AgentFactory;
@@ -10,6 +10,7 @@ import deu.cse.spring_webmail.model.ImageManager;
 import deu.cse.spring_webmail.model.Pop3Agent;
 import deu.cse.spring_webmail.model.UserAdminAgent;
 import jakarta.mail.Message;
+import java.util.Arrays;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
@@ -39,13 +40,13 @@ class SystemControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
-    
+
     @MockBean
     private AgentFactory agentFactory;
-    
+
     @MockBean
     private ImageManager imageManager;
-    
+
     private static final int COMMAND_LOGIN = 91;
     private static final int COMMAND_LOGOUT = 92;
 
@@ -63,7 +64,7 @@ class SystemControllerTest {
         String testUserid = "admin@webmail.com";
         String testPassword = "admin";
         String testHost = "test.webmail.com";
-        
+
         Pop3Agent mockPop3Agent = Mockito.mock(Pop3Agent.class);
 
         // agentFactory 클래스의 pop3AgentCreate 메서드가 실행될 경우 mockPop3Agent를 리턴함
@@ -86,23 +87,23 @@ class SystemControllerTest {
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/admin_menu"));
     }
-    
+
     @Test
     void loginUserSuccessTest() throws Exception {
         String testUserid = "test@webmail.com";
         String testPassword = "test_password";
         String testHost = "test.webmail.com";
-        
+
         Pop3Agent mockPop3Agent = Mockito.mock(Pop3Agent.class);
-        
+
         BDDMockito.given(agentFactory.pop3AgentCreate(
                 anyString(),
                 eq(testUserid),
                 eq(testPassword))
         ).willReturn(mockPop3Agent);
-        
+
         BDDMockito.given(mockPop3Agent.validate()).willReturn(true);
-        
+
         mockMvc.perform(MockMvcRequestBuilders.post("/login.do")
                 .param("menu", String.valueOf(COMMAND_LOGIN))
                 .param("userid", testUserid)
@@ -112,23 +113,23 @@ class SystemControllerTest {
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/main_menu"));
     }
-    
+
     @Test
     void loginFailTest() throws Exception {
         String testUserid = "fail@webmail.com";
         String testPassword = "wrong_password";
         String testHost = "test.webmail.com";
-        
+
         Pop3Agent mockPop3Agent = Mockito.mock(Pop3Agent.class);
-        
+
         BDDMockito.given(agentFactory.pop3AgentCreate(
                 anyString(),
                 eq(testUserid),
                 eq(testPassword))
         ).willReturn(mockPop3Agent);
-        
+
         BDDMockito.given(mockPop3Agent.validate()).willReturn(false);
-        
+
         mockMvc.perform(MockMvcRequestBuilders.post("/login.do")
                 .param("menu", String.valueOf(COMMAND_LOGIN))
                 .param("userid", testUserid)
@@ -138,12 +139,12 @@ class SystemControllerTest {
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/login_fail"));
     }
-    
+
     @Test
     void logoutTest() throws Exception {
         MockHttpSession session = new MockHttpSession();
         session.setAttribute("userid", "loggedInUser");
-        
+
         mockMvc.perform(MockMvcRequestBuilders.get("/login.do")
                 .param("menu", String.valueOf(COMMAND_LOGOUT))
                 .session(session)
@@ -151,7 +152,7 @@ class SystemControllerTest {
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/"));
     }
-    
+
     @Test
     void loginFailViewTest() throws Exception {
         mockMvc.perform(MockMvcRequestBuilders.get("/login_fail"))
@@ -159,17 +160,59 @@ class SystemControllerTest {
                 .andExpect(view().name("login_fail"));
     }
 
+    @Test
+    void loginUserSuccessWithDomainCandidateTest() throws Exception {
+        String userIdWithoutDomain = "user";
+        String fullUserid = "user@domain.com";
+        String testPassword = "test_password";
+        String testHost = "test.webmail.com";
+
+        // 1. Mock UserAdminAgent 설정
+        UserAdminAgent mockUserAdminAgent = Mockito.mock(UserAdminAgent.class);
+        BDDMockito.given(agentFactory.userAdminAgentCreate(
+                anyString(), anyInt(), anyString(), anyString(), anyString(), anyString()
+        )).willReturn(mockUserAdminAgent);
+
+        // 2. getUserList()가 특정 사용자 목록을 반환하도록 설정
+        BDDMockito.given(mockUserAdminAgent.getUserList())
+                .willReturn(Arrays.asList("user1@other.com", fullUserid, "admin@domain.com"));
+
+        // 3. Mock Pop3Agent 설정 (로그인 검증용)
+        Pop3Agent mockPop3Agent = Mockito.mock(Pop3Agent.class);
+        BDDMockito.given(agentFactory.pop3AgentCreate(
+                testHost,
+                fullUserid,
+                testPassword)
+        ).willReturn(mockPop3Agent);
+        BDDMockito.given(mockPop3Agent.validate()).willReturn(true); // 로그인 성공
+
+        // 4. login.do로 POST 요청 수행
+        mockMvc.perform(MockMvcRequestBuilders.post("/login.do")
+                .param("menu", String.valueOf(COMMAND_LOGIN))
+                .param("userid", userIdWithoutDomain) // 도메인 없는 사용자 ID
+                .param("passwd", testPassword)
+                .sessionAttr("host", testHost)
+        )
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/main_menu"));
+
+        // 5. getDomainCandidates 로직이 잘 동작했는지 검증 (optional, but good practice)
+        Mockito.verify(agentFactory).pop3AgentCreate(
+                testHost, fullUserid, testPassword
+        );
+    }
+
     // 메인 메뉴 
     @Test
     void mainMenuTest() throws Exception {
         Pop3Agent mockPop3Agent = Mockito.mock(Pop3Agent.class);
         Message mockMessage = Mockito.mock(Message.class);
-        
+
         BDDMockito.given(agentFactory.pop3AgentCreate(anyString(), anyString(), anyString()))
                 .willReturn(mockPop3Agent);
-        
+
         Mockito.when(mockPop3Agent.getMessages()).thenReturn(new Message[]{mockMessage});
-        
+
         mockMvc.perform(MockMvcRequestBuilders.get("/main_menu")
                 .sessionAttr("host", "test.webmail.com")
                 .sessionAttr("userid", "testuser@webmail.com")
@@ -179,19 +222,19 @@ class SystemControllerTest {
                 .andExpect(view().name("main_menu"))
                 .andExpect(model().attributeExists("totalPages"))
                 .andExpect(model().attributeExists("messageList"));
-        
+
     }
-    
+
     @Test
     void searchMailTest() throws Exception {
         Pop3Agent mockPop3Agent = Mockito.mock(Pop3Agent.class);
         Message mockMessage = Mockito.mock(Message.class);
-        
+
         BDDMockito.given(agentFactory.pop3AgentCreate(anyString(), anyString(), anyString()))
                 .willReturn(mockPop3Agent);
-        
+
         Mockito.when(mockPop3Agent.getMessages()).thenReturn(new Message[]{mockMessage});
-        
+
         mockMvc.perform(MockMvcRequestBuilders.post("/search_mail")
                 .param("keyword", "검색내용")
                 .param("sort", "desc")
@@ -204,25 +247,25 @@ class SystemControllerTest {
                 .andExpect(view().name("main_menu"))
                 .andExpect(model().attributeExists("totalPages"))
                 .andExpect(model().attributeExists("messageList"));
-        
+
     }
-    
+
     @Test
     void adminMenuTest() throws Exception {
-        
+
         MockHttpSession session = new MockHttpSession();
         session.setAttribute("userid", "admin@webmail.com");
-        
+
         UserAdminAgent mockUserAdminAgent = Mockito.mock(UserAdminAgent.class);
-        
+
         BDDMockito.given(agentFactory.userAdminAgentCreate(
                 anyString(), anyInt(), anyString(),
                 anyString(), anyString(), anyString()
         )).willReturn(mockUserAdminAgent);
-        
+
         List<String> dummyUserList = java.util.Arrays.asList("user1@test.com", "user2@test.com", "admin@webmail.com");
         BDDMockito.given(mockUserAdminAgent.getUserList()).willReturn(dummyUserList);
-        
+
         mockMvc.perform(MockMvcRequestBuilders.get("/admin_menu")
                 .session(session)
         )
@@ -230,6 +273,29 @@ class SystemControllerTest {
                 .andExpect(view().name("admin/admin_menu"))
                 .andExpect(model().attributeExists("userList"))
                 .andExpect(model().attribute("userList", dummyUserList.stream().sorted().toList()));
+    }
+
+    @Test
+    void adminMenuDeniedTest() throws Exception {
+
+        MockHttpSession session = new MockHttpSession();
+        session.setAttribute("userid", "testUser@webmail.com");
+
+        UserAdminAgent mockUserAdminAgent = Mockito.mock(UserAdminAgent.class);
+
+        BDDMockito.given(agentFactory.userAdminAgentCreate(
+                anyString(), anyInt(), anyString(),
+                anyString(), anyString(), anyString()
+        )).willReturn(mockUserAdminAgent);
+
+        List<String> dummyUserList = java.util.Arrays.asList("user1@test.com", "user2@test.com", "admin@webmail.com");
+        BDDMockito.given(mockUserAdminAgent.getUserList()).willReturn(dummyUserList);
+
+        mockMvc.perform(MockMvcRequestBuilders.get("/admin_menu")
+                .session(session)
+        )
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/login_fail"));
     }
 
     // 유저 추가
@@ -246,9 +312,9 @@ class SystemControllerTest {
     void addUserDoSucessTest() throws Exception {
         String testUserid = "newuser@webmail.com";
         String testPassword = "newuser";
-        
+
         UserAdminAgent mockAdminAgent = Mockito.mock(UserAdminAgent.class);
-        
+
         BDDMockito.given(agentFactory.userAdminAgentCreate(
                 anyString(), anyInt(), anyString(),
                 anyString(), anyString(), anyString()
@@ -264,12 +330,12 @@ class SystemControllerTest {
                 .andExpect(flash().attributeExists("msg"))
                 .andExpect(flash().attribute("msg", String.format("사용자(%s) 추가를 성공하였습니다.", testUserid)));
     }
-    
+
     @Test
     void addUserDoFailTest() throws Exception {
         String testUserid = "newuser@test.com";
         String testPassword = "newuser";
-        
+
         UserAdminAgent mockAdminAgent = Mockito.mock(UserAdminAgent.class);
         BDDMockito.given(agentFactory.userAdminAgentCreate(
                 anyString(), anyInt(), anyString(),
@@ -292,17 +358,17 @@ class SystemControllerTest {
     // 페이지
     @Test
     void deleteUserTest() throws Exception {
-        
+
         UserAdminAgent mockUserAdminAgent = Mockito.mock(UserAdminAgent.class);
-        
+
         BDDMockito.given(agentFactory.userAdminAgentCreate(
                 anyString(), anyInt(), anyString(),
                 anyString(), anyString(), anyString()
         )).willReturn(mockUserAdminAgent);
-        
+
         List<String> dummyUserList = java.util.Arrays.asList("user1@test.com", "user2@test.com", "admin@webmail.com");
         BDDMockito.given(mockUserAdminAgent.getUserList()).willReturn(dummyUserList);
-        
+
         mockMvc.perform(MockMvcRequestBuilders.get("/delete_user"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("admin/delete_user"))
@@ -314,13 +380,13 @@ class SystemControllerTest {
     @Test
     void deleteUserDoTest() throws Exception {
         String[] testUserids = {"deleteuser@webmail.com"};
-        
+
         UserAdminAgent mockAdminAgent = Mockito.mock(UserAdminAgent.class);
         BDDMockito.given(agentFactory.userAdminAgentCreate(
                 anyString(), anyInt(), anyString(),
                 anyString(), anyString(), anyString()
         )).willReturn(mockAdminAgent);
-        
+
         BDDMockito.given(mockAdminAgent.deleteUsers(testUserids))
                 .willReturn(true);
         mockMvc.perform(MockMvcRequestBuilders.post("/delete_user.do")
@@ -337,12 +403,12 @@ class SystemControllerTest {
 
         // 가짜 이미지 바이트 데이터
         byte[] fakeImageBytes = "test-image-byte".getBytes();
-        
+
         BDDMockito.given(imageManager.getImageBytes(anyString(), eq(fakeImageName))).willReturn(fakeImageBytes);
-        
+
         mockMvc.perform(MockMvcRequestBuilders.get("/get_image/" + fakeImageName))
                 .andExpect(status().isOk())
                 .andExpect(content().bytes(fakeImageBytes));
     }
-    
+
 }

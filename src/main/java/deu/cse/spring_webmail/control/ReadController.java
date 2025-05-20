@@ -8,10 +8,8 @@ import deu.cse.spring_webmail.model.AgentFactory;
 import deu.cse.spring_webmail.model.MessageFormatter;
 import deu.cse.spring_webmail.model.Pop3Agent;
 import jakarta.mail.Message;
-import jakarta.mail.internet.MimeUtility;
 import java.io.File;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -69,13 +67,13 @@ public class ReadController {
         return "redirect:/show_message";
     }
 
-
     // 기존 메서드 주석 처리함. 메일 테이블 생성 시
     // message-id 포함 링크로 변경하였음
     // url 안보이게 처리
     @GetMapping("/show_message")
     public String showMessageById(Model model) {
         String id = (String) session.getAttribute("selectedMessageId");
+        String content = "해당 메일을 찾을 수 없습니다.";
         if (id == null || id.isBlank()) {
             model.addAttribute("msg", "잘못된 접근입니다. 메일이 선택되지 않았습니다.");
             return "/read_mail/show_message";
@@ -87,28 +85,26 @@ public class ReadController {
 
         Pop3Agent agent = agentFactory.pop3AgentCreate(host, userid, password);
         Message[] messages = agent.getMessages();
-
-        for (Message msg : messages) {
-            try {
+        try {
+            for (Message msg : messages) {
                 String[] headers = msg.getHeader("Message-ID");
                 if (headers != null && headers.length > 0) {
                     String messageIdHeader = headers[0].replaceAll("[<>]", "");
                     if (messageIdHeader.equals(id)) {
                         MessageFormatter formatter = new MessageFormatter(userid);
                         formatter.setRequest(request);
-                        String content = formatter.getMessage(msg);
+                        content = formatter.getMessage(msg);
                         session.setAttribute("sender", formatter.getSender());
                         session.setAttribute("subject", formatter.getSubject());
                         session.setAttribute("body", formatter.getBody());
-                        model.addAttribute("msg", content);
-                        return "/read_mail/show_message";
                     }
                 }
-            } catch (Exception e) {
-                log.error("오류 발생", e);
+
             }
+        } catch (Exception e) {
+            log.error("오류 발생", e);
         }
-        model.addAttribute("msg", "해당 메일을 찾을 수 없습니다.");
+        model.addAttribute("msg", content);
         return "/read_mail/show_message";
     }
 

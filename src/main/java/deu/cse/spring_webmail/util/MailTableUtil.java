@@ -11,19 +11,26 @@ import jakarta.mail.internet.InternetAddress;
 
 import java.text.SimpleDateFormat;
 import java.util.List;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  *
  * @author keyrb
  */
+@Slf4j
 public class MailTableUtil {
-    // 기본 버전: msgNo = 1부터 시작 (검색용)
-    public static String buildMessageTable(List<Message> messages, String userid) {
-        return buildMessageTable(messages, userid, 0);  // startIndex = 0
+
+    // private 생성자 추가
+    private MailTableUtil() {
     }
-    
+
+    // 기본 버전: msgNo = 1부터 시작 (검색용)
+    public static String buildMessageTable(List<Message> messages) {
+        return buildMessageTable(messages, 0);  // startIndex = 0
+    }
+
     // 오버로딩: msgNo = startIndex + 1부터 시작(페이징용)
-     public static String buildMessageTable(List<Message> messages, String userid, int startIndex) {
+    public static String buildMessageTable(List<Message> messages, int startIndex) {
         StringBuilder sb = new StringBuilder();
         sb.append("<table border='1'>");
         sb.append("<tr><th>번호</th><th>보낸 사람</th><th>제목</th><th>날짜</th><th>삭제</th></tr>");
@@ -57,7 +64,7 @@ public class MailTableUtil {
 
                 msgNo++;
             } catch (Exception e) {
-                e.printStackTrace();
+                log.error("메시지 테이블 빌드 중 오류 발생: {}", e.getMessage(), e);
             }
         }
 
@@ -73,6 +80,5 @@ public class MailTableUtil {
             return "";
         }
     }
-    
-    
+
 }

@@ -2,12 +2,13 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
  */
-package deu.cse.spring_webmail;
+package deu.cse.spring_webmail.ControllerTest;
 
 import deu.cse.spring_webmail.control.ReadController;
 import deu.cse.spring_webmail.model.AgentFactory;
 import deu.cse.spring_webmail.model.Pop3Agent;
 import jakarta.mail.Message;
+import jakarta.mail.internet.MimeMessage;
 import jakarta.servlet.ServletContext;
 import java.io.File;
 import java.nio.file.Files;
@@ -77,6 +78,79 @@ class ReadControllerTest {
 
         mockMvc.perform(MockMvcRequestBuilders.get("/show_message")
                 .param("id", testMessageId)
+                .sessionAttr("host", testHost)
+                .sessionAttr("userid", testUserid)
+                .sessionAttr("password", testPassword)
+        )
+                .andExpect(status().isOk())
+                .andExpect(view().name("/read_mail/show_message"))
+                .andExpect(model().attributeExists("msg"));
+    }
+
+    @Test
+    void selectMessageTest() throws Exception {
+        mockMvc.perform(MockMvcRequestBuilders.get("/select_message")
+                .param("id", "12345")
+                .sessionAttr("selectedMessageId", ""))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/show_message"));
+    }
+
+    @Test
+    void showMessageByIdTest_invalidId_showsError() throws Exception {
+        mockMvc.perform(MockMvcRequestBuilders.get("/show_message")
+                .sessionAttr("selectedMessageId", ""))
+                .andExpect(status().isOk())
+                .andExpect(view().name("/read_mail/show_message"))
+                .andExpect(model().attribute("msg", "잘못된 접근입니다. 메일이 선택되지 않았습니다."));
+    }
+
+    @Test
+    void showMessageByIdTest_messageNotFound() throws Exception {
+        String testMessageId = "non-existent-ID";
+        String testHost = "test@webmail.com";
+        String testUserid = "admin@webmail.com";
+        String testPassword = "admin_password";
+
+        Pop3Agent mockPop3Agent = Mockito.mock(Pop3Agent.class);
+        Message mockMessage = Mockito.mock(Message.class);
+
+        Mockito.when(mockMessage.getHeader("Message-ID")).thenReturn(new String[]{"<another-ID>"});
+        Mockito.when(mockPop3Agent.getMessages()).thenReturn(new Message[]{mockMessage});
+
+        BDDMockito.given(agentFactory.pop3AgentCreate(testHost, testUserid, testPassword))
+                .willReturn(mockPop3Agent);
+
+        mockMvc.perform(MockMvcRequestBuilders.get("/show_message")
+                .sessionAttr("selectedMessageId", testMessageId)
+                .sessionAttr("host", testHost)
+                .sessionAttr("userid", testUserid)
+                .sessionAttr("password", testPassword))
+                .andExpect(status().isOk())
+                .andExpect(view().name("/read_mail/show_message"))
+                .andExpect(model().attribute("msg", "해당 메일을 찾을 수 없습니다."));
+    }
+
+    @Test
+    void showMessageByIdTest_messageFoundAndFormatted() throws Exception {
+        // 테스트에 사용할 고유한 Message-ID
+        String testMessageId = "unique-test-message-id-12345";
+        String testHost = "test.example.com";
+        String testUserid = "user@example.com";
+        String testPassword = "password123";
+
+        // Mock 객체 생성
+        Pop3Agent mockPop3Agent = Mockito.mock(Pop3Agent.class);
+        Message mockMessage = Mockito.mock(MimeMessage.class); // MimeMessage로 Mocking하여 헤더
+
+        // Mock Pop3AgentFactory가 Pop3Agent Mock을 반환하도록 설정
+        BDDMockito.given(agentFactory.pop3AgentCreate(testHost, testUserid, testPassword))
+                .willReturn(mockPop3Agent);
+
+        Mockito.when(mockPop3Agent.getMessages()).thenReturn(new Message[]{mockMessage});
+        Mockito.when(mockMessage.getHeader("Message-ID")).thenReturn(new String[]{"<" + testMessageId + ">"});
+        mockMvc.perform(MockMvcRequestBuilders.get("/show_message")
+                .sessionAttr("selectedMessageId", testMessageId)
                 .sessionAttr("host", testHost)
                 .sessionAttr("userid", testUserid)
                 .sessionAttr("password", testPassword)

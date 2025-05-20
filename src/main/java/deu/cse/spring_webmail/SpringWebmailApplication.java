@@ -25,7 +25,7 @@ public class SpringWebmailApplication {
      * @return 
      */
     @Bean(name="systemProperties")
-    public PropertiesFactoryBean systemProperties() {
+    public static PropertiesFactoryBean systemProperties() {
         log.debug("systemProperties() called...");
         PropertiesFactoryBean bean = new PropertiesFactoryBean();
         bean.setLocation(new ClassPathResource("/system.properties"));

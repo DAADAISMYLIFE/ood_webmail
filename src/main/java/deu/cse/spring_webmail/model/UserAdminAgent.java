@@ -36,14 +36,14 @@ public class UserAdminAgent {
     }
 
     public UserAdminAgent(String server, int port, String cwd,
-            String root_id, String root_pass, String admin_id) {
+            String rootId, String rootPass, String adminId) {
         log.debug("UserAdminAgent created: server = {}, port = {}", server, port);
         this.server = server;  // 예: localhost
         this.port = port;      // 예: 9999 (JMX 포트)
         this.cwd = cwd;
-        this.ROOT_ID = root_id;
-        this.ROOT_PASSWORD = root_pass;
-        this.ADMIN_ID = admin_id;
+        this.ROOT_ID = rootId;
+        this.ROOT_PASSWORD = rootPass;
+        this.ADMIN_ID = adminId;
 
         log.debug("isConnected = {}, root.id = {}", isConnected, ROOT_ID);
 

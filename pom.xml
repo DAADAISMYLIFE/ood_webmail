@@ -22,7 +22,8 @@
             **/SpringWebmailApplication.java,
             **/control/CommandType.java,
             **/model/**,
-            **/util/**
+            **/util/**,
+            **/service/**
         </sonar.coverage.exclusions>
     </properties>
     <dependencies>
@@ -134,6 +135,7 @@
                                 <exclude>**/control/CommandType*</exclude>
                                 <exclude>**/model/**</exclude>
                                 <exclude>**/util/**</exclude>
+                                <exclude>**/service/**</exclude>
                             </excludes>
                         </configuration>
                     </execution>

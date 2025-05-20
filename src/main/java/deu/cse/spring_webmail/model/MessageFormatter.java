@@ -11,9 +11,6 @@ import lombok.Getter;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
-import jakarta.mail.MessagingException;
 
 /**
  *

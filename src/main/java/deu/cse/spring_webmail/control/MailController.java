@@ -4,7 +4,7 @@
  */
 package deu.cse.spring_webmail.control;
 
-import deu.cse.spring_webmail.model.MailListService;
+import deu.cse.spring_webmail.service.MailListService;
 import deu.cse.spring_webmail.model.Pop3Agent;
 import jakarta.mail.Message;
 import jakarta.servlet.http.HttpSession;

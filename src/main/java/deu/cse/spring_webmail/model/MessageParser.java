@@ -13,8 +13,6 @@ import jakarta.mail.Part;
 import jakarta.mail.internet.MimeUtility;
 import java.io.File;
 import java.io.FileOutputStream;
-import java.util.ArrayList;
-import java.util.List;
 
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.ArrayList;
@@ -52,7 +50,6 @@ public class MessageParser {
         this(message, userid);
         PropertyReader props = new PropertyReader();
         String downloadPath = props.getProperty("file.download_folder");
-        // downloadTempDir = request.getServletContext().getRealPath(downloadPath);
         // 사용자 폴더 포함 경로 지정 (수정)
         downloadTempDir = request.getServletContext().getRealPath(downloadPath) + File.separator + userid;
         File f = new File(downloadTempDir);

@@ -8,13 +8,8 @@ import deu.cse.spring_webmail.model.AgentFactory;
 import deu.cse.spring_webmail.model.ImageManager;
 import deu.cse.spring_webmail.model.Pop3Agent;
 import deu.cse.spring_webmail.model.UserAdminAgent;
-import java.awt.image.BufferedImage;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileNotFoundException;
 import java.util.LinkedList;
 import java.util.List;
-import javax.imageio.ImageIO;
 import jakarta.servlet.ServletContext;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
@@ -107,13 +102,13 @@ public class SystemController {
         switch (menu) {
             case CommandType.LOGIN:
                 String host = (String) request.getSession().getAttribute("host");
-                String rawUserId = request.getParameter("userid");
+                String rawUserId = request.getParameter(userIdParam);
                 String password = request.getParameter("passwd");
 
                 // '@' 없는 경우 후보 조회
                 if (!rawUserId.contains("@")) {
                     List<String> candidates = getDomainCandidates(rawUserId);
-                    if (candidates.size() >= 1) {
+                    if (!candidates.isEmpty()) {
                         rawUserId = candidates.get(0); // 도메인 자동 매칭
                     }
                 }
@@ -123,9 +118,9 @@ public class SystemController {
                 boolean isLoginSuccess = pop3Agent.validate();
 
                 if (isLoginSuccess) {
-                    session.setAttribute("userid", rawUserId);
+                    session.setAttribute(userIdParam, rawUserId);
                     session.setAttribute("password", password);
-                    
+
                     if (isAdmin(rawUserId)) {
                         url = "redirect:/admin_menu";
                     } else {
@@ -148,7 +143,6 @@ public class SystemController {
         return url;
     }
 
-
     @GetMapping("/login_fail")
     public String loginFail() {
         return "login_fail";
@@ -164,18 +158,12 @@ public class SystemController {
         return status;
     }
 
-    // TODO : 인증없이 일반 유저도 어드민 페이지 와짐. 어드민 인증 로직 추가할 것
     @GetMapping("/admin_menu")
     public String adminMenu(Model model) {
         String sessionUserid = (String) session.getAttribute("userid");
 
-        // 비로그인 차단
-        if (sessionUserid == null) {
-            return "redirect:/login_fail";
-        }
-
-        // 비관리자 차단
-        if (!isAdmin(sessionUserid)) {
+        // 비로그인 차단 및 비관리자 차단
+        if (sessionUserid == null || !isAdmin(sessionUserid)) {
             return "redirect:/login_fail";
         }
 
@@ -203,7 +191,7 @@ public class SystemController {
             UserAdminAgent agent = agentFactory.userAdminAgentCreate(JAMES_HOST, JAMES_CONTROL_PORT, cwd,
                     ROOT_ID, ROOT_PASSWORD, ADMINISTRATOR);
 
-            // if (addUser successful)  사용자 등록 성공 팦업창
+            // if 사용자 등록 성공 팦업창
             // else 사용자 등록 실패 팝업창
             if (agent.addUser(id, password)) {
                 attrs.addFlashAttribute("msg", String.format("사용자(%s) 추가를 성공하였습니다.", id));
@@ -269,7 +257,7 @@ public class SystemController {
      * @param imageName
      * @return
      */
-    @RequestMapping(value = "/get_image/{imageName}")
+    @GetMapping(value = "/get_image/{imageName}")
     @ResponseBody
     public byte[] getImage(@PathVariable String imageName) {
         try {

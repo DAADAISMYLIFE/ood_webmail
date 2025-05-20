@@ -18,8 +18,8 @@ public class AgentFactory {
     }
 
     public UserAdminAgent userAdminAgentCreate(String server, int port, String cwd,
-            String root_id, String root_pass, String admin_id) {
-        return new UserAdminAgent(server, port, cwd, root_id, root_pass, admin_id);
+            String rootId, String rootPass, String adminId) {
+        return new UserAdminAgent(server, port, cwd, rootId, rootPass, adminId);
     }
     
      public SmtpAgent smtpAgentCreate(String host, String userid) {

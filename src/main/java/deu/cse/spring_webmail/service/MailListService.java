@@ -2,7 +2,7 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
  */
-package deu.cse.spring_webmail.model;
+package deu.cse.spring_webmail.service;
 
 import deu.cse.spring_webmail.util.MailTableUtil;
 import jakarta.mail.Message;
@@ -14,7 +14,7 @@ import java.util.*;
  */
 public class MailListService {
 
-    private final String userid;
+    final String userid;
 
     public MailListService(String userid) {
         this.userid = userid;
@@ -45,6 +45,6 @@ public class MailListService {
 
         List<Message> pagedList = messageList.subList(start, end);
 
-        return MailTableUtil.buildMessageTable(pagedList, userid, start);
+        return MailTableUtil.buildMessageTable(pagedList, start);
     }
 }

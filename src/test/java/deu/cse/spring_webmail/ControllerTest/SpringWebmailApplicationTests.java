@@ -1,14 +1,12 @@
-package deu.cse.spring_webmail;
+package deu.cse.spring_webmail.ControllerTest;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
 class SpringWebmailApplicationTests {
 
-    @Autowired
-    private @Test
+    @Test
     void contextLoads() {
     }
 

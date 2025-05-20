@@ -296,7 +296,7 @@ public class Pop3Agent {
             folder.close(false);
             store.close();
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Pop3Agent.getMessageIdList() error : " + e);
         }
         return idList;
     }
